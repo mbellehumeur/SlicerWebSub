@@ -12,7 +12,7 @@ Try the [online example worklist client](https://bellehumeur-engineering.com/wor
 
 The extension aims to  promote, train, develop, and demonstrate interoperability in medical imaging applications. Its original intent was to support the [IHE Integrated Reporting Application](https://profiles.ihe.net/RAD/IRA/) workflow. Over time, it has moved on to supporting the needs researchers and educators.  Supporting [IHE AI Results](https://wiki.ihe.net/index.php/AI_Results) is a work in progress.
  
-This python extension supplies the **HUB**, service provider example scripts, and the Slicer Qt **Image Display** client connection. Together with its sister repository of [javascript clients](https://github.com/mbellehumeur/SlicerWebSub-js), the system includes:
+This python extension supplies the **HUB** and the Slicer Qt **Image Display** client connection. Inference workers live in the sister [SlicerWebSub-workers](https://github.com/mbellehumeur/SlicerWebSub-workers) repository. Together with [javascript clients](https://github.com/mbellehumeur/SlicerWebSub-js), the system includes:
 
 - **HUB** actor: a WebSub hub for communication between applications and users
 - **WORKLIST_CLIENT** actor: a worklist application (described [here](https://github.com/mbellehumeur/SlicerWebSub-js#worklist-and-classroom))
@@ -84,7 +84,7 @@ You can try WebSub integration with the [Slicer WebSub worklist example](https:/
 
 ## Extension Features
 
-The extension features a hub and two client interfaces interfaces: one for connecting inference models like Total Segmentator (service providers) and another to connect the 3D Slicer Qt viewer (Image Display client) and DICOM DB  to the hub.
+The extension features a hub and the Image Display client (3D Slicer Qt viewer + DICOM DB). Inference models such as Total Segmentator run as WebSub workers in the sibling [SlicerWebSub-workers](https://github.com/mbellehumeur/SlicerWebSub-workers) repo.
 
 ### Hub
 
@@ -96,17 +96,12 @@ The hub is a stateless routing appliance that distributes messages and handles d
 
 It can be used without the Slicer extension by running the `hub.py` script.
 
-### Service Providers
+### WebSub workers
 
-Service Providers are scripts that connect inference docker containers to the hub with a websocket connection.  The provider will receive instructions over the websocket to process a dataset with specific options, download the data (from PACS or from the viewer application over the hub) , process and return result to the viewer.  This allows users to view results without having to send them to the PACS archive first.  The service can run on a local machine (only the hub needs to be on the internet with a domain name) therefore avoiding cloud GPU leasing expenses. 
+Workers are standalone scripts in [SlicerWebSub-workers](https://github.com/mbellehumeur/SlicerWebSub-workers) that connect inference containers to the hub over a websocket. A worker receives instructions to process a dataset with specific options, downloads the data (from PACS or from the viewer over the hub), runs inference, and returns results to the viewer. That lets users see results without archiving them to PACS first. Workers can run on a local machine (only the hub needs a public domain), avoiding cloud GPU leasing expenses.
 
-The service provider tab provides a visual description of how processing resources can be connected to the hub and made available to hub workflows.
 
-<p align="center">
-  <img src="WebSubInterface/docs/images/ServiceProviderFeature.png" alt="Service Provider feature" width="80%">
-</p>
-
-Service Providers subscribe to all user topics for status-request and dicom/nifti events. In the example below, Dental Segmentator sends binary results back to the user through the hub.
+Workers subscribe to user topics for status-request and dicom/nifti events. In the example below, Dental Segmentator sends binary results back to the user through the hub.
 
 <p align="center">
   <a href="https://youtu.be/vNtK8ldMcw0">
@@ -114,7 +109,7 @@ Service Providers subscribe to all user topics for status-request and dicom/nift
   </a>
 </p>
 
-Since these resources do not log in as a user, they need a *service provider entry* (Machine-to-Machine application) in the customer's authorization server. That provides a client id and client secret used by the SP against hub `POST /oauth/token` (`client_credentials`). Configure the hub with `HUB_OIDC_M2M_AUDIENCE` (and optional `HUB_SP_CLIENT_IDS`); put the M2M credentials on the SP via Slicer settings or `HUB_SP_CLIENT_ID` / `HUB_SP_CLIENT_SECRET`. See [`WebSubInterface/hub/docs/oidc.md`](WebSubInterface/hub/docs/oidc.md).
+Since workers do not log in as a user, they need a *Machine-to-Machine* application entry in the customer's authorization server. That provides a client id and client secret used against hub `POST /oauth/token` (`client_credentials`). Configure the hub with `HUB_OIDC_M2M_AUDIENCE` (and optional `HUB_SP_CLIENT_IDS`); put the M2M credentials on the worker via `HUB_SP_CLIENT_ID` / `HUB_SP_CLIENT_SECRET`. See [`WebSubInterface/hub/docs/oidc.md`](WebSubInterface/hub/docs/oidc.md).
 
 ### Image Display Client
 
@@ -191,7 +186,7 @@ pip install -e python_client
 # Terminal 1 — Hub
 cd hub && pip install -r requirements.txt && python hub.py --port 2018
 
-# Terminal 2 — Service provider (examples)
+# Terminal 2 — WebSub worker (examples; sibling repo)
 python ../SlicerWebSub-workers/neuro_seg/neuro_seg.py --local
 # python ../SlicerWebSub-workers/total_segmentator/total_segmentator.py --local
 
@@ -279,6 +274,8 @@ Slicer WebSub is distributed under the [MIT License](LICENSE.txt).
 ## Acknowledgements
 
 **3D Slicer** — open-source platform for medical image computing from the [3D Slicer community](https://www.slicer.org/). This extension is built for and distributed through the 3D Slicer extension ecosystem.
+
+**Imaging Data Commons** — cloud-based repository of publicly available cancer imaging data from the [National Cancer Institute](https://imaging.datacommons.cancer.gov/). Slicer WebSub uses IDC as a read-only image archive and for worklist / Slim demos.
 
 **TotalSegmentator** was created by the Department of Research and Analysis at University Hospital Basel. If you use it, please cite our Radiology: Artificial Intelligence paper ([free preprint](https://arxiv.org/abs/2208.05868)). If you use it for MR images, please cite the TotalSegmentator MRI *Radiology* paper ([free preprint](https://arxiv.org/abs/2405.19492)).
 
