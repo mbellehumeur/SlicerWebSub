@@ -58,7 +58,7 @@ def _read_hub_extension_version() -> str:
 async def get_admin_about():
     """Metadata for the admin About dialog (extension name, version, homepage)."""
     return {
-        "name": "Slicer Hub",
+        "name": "Slicer WebSub",
         "description": (
             "3D Slicer extension for desktop integration workflows "
             "for healthcare providers and researchers."

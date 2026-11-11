@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Deploy Slicer Hub to Fly.io (mock and/or OIDC apps).
+# Deploy Slicer WebSub to Fly.io (mock and/or OIDC apps).
 #
 # Usage:
 #   ./deploy-fly.sh              # default: mock

@@ -1,4 +1,4 @@
-# Fly.io — Slicer Hub MOCK auth (template)
+# Fly.io — Slicer WebSub MOCK auth (template)
 # Copy to fly.toml and set your app name / region / VM size.
 # Build context: this directory (WebSubInterface/).
 #

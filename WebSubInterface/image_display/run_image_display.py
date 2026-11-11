@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Standalone Slicer image display client (no Slicer Hub module UI).
+"""Standalone Slicer image display client (no Slicer WebSub module UI).
 
 Run:
   Slicer --python-script image_display/run_image_display.py -- --local --topic USER-1

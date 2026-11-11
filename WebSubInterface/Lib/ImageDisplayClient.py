@@ -1,4 +1,4 @@
-"""Slicer Hub — Image Display Client subsection."""
+"""Slicer WebSub — Image Display Client subsection."""
 
 from __future__ import annotations
 
@@ -20,6 +20,7 @@ from .hub_presets import (
     HUBS,
     MAIN_QUEUE_TIMER_MS,
     hub_admin_url_for_name,
+    hub_worklist_url_for_name,
     normalize_hub_name,
 )
 from image_display_client_hub import (
@@ -140,6 +141,7 @@ class ImageDisplayClientWidget:
         self.oidcCheckBox: Optional[qt.QCheckBox] = None
         self.connectButton: Optional[qt.QPushButton] = None
         self.disconnectButton: Optional[qt.QPushButton] = None
+        self.openWorklistButton: Optional[qt.QPushButton] = None
         self.conferenceButton: Optional[qt.QPushButton] = None
         self.statusLabel: Optional[qt.QLabel] = None
         self._conference_dialog: Optional[ConferenceDialog] = None
@@ -153,6 +155,14 @@ class ImageDisplayClientWidget:
         layout.setLabelAlignment(qt.Qt.AlignLeft)
         layout.setHorizontalSpacing(84)
 
+        self.openWorklistButton = qt.QPushButton(_("Open worklist"))
+        self.openWorklistButton.setToolTip(
+            _("Open the hub worklist client in your default browser")
+        )
+        self.openWorklistButton.clicked.connect(self._on_open_worklist)
+        self.openWorklistButton.setSizePolicy(
+            qt.QSizePolicy.Fixed, qt.QSizePolicy.Fixed
+        )
         self.conferenceButton = qt.QPushButton(_("Start a conference"))
         self.conferenceButton.setToolTip(_("Create or manage a Hub conference"))
         self.conferenceButton.clicked.connect(self._on_conference)
@@ -163,6 +173,7 @@ class ImageDisplayClientWidget:
         conference_row = qt.QWidget()
         conference_row_layout = qt.QHBoxLayout(conference_row)
         conference_row_layout.setContentsMargins(0, 0, 0, 0)
+        conference_row_layout.addWidget(self.openWorklistButton, 0)
         conference_row_layout.addWidget(self.conferenceButton, 0)
         conference_row_layout.addStretch(1)
         layout.addRow(_("Conferencing:"), conference_row)
@@ -430,6 +441,21 @@ class ImageDisplayClientWidget:
         if not qt.QDesktopServices.openUrl(qt.QUrl(admin_url)):
             slicer.util.warningDisplay(
                 _("Could not open hub admin URL:\n{url}").format(url=admin_url)
+            )
+
+    def _on_open_worklist(self) -> None:
+        if not self.hubComboBox:
+            return
+        hub_name = self.hubComboBox.currentText
+        worklist_url = hub_worklist_url_for_name(hub_name)
+        if not worklist_url:
+            slicer.util.warningDisplay(
+                _("No worklist URL for hub {name}").format(name=hub_name)
+            )
+            return
+        if not qt.QDesktopServices.openUrl(qt.QUrl(worklist_url)):
+            slicer.util.warningDisplay(
+                _("Could not open worklist URL:\n{url}").format(url=worklist_url)
             )
 
     def _on_connect(self) -> None:

@@ -1,6 +1,6 @@
 # Standalone Hub components
 
-Run these from a clone of [SlicerWebSub](https://github.com/mbellehumeur/SlicerWebSub) **without** opening the Slicer Hub module in 3D Slicer.
+Run these from a clone of [SlicerWebSub](https://github.com/mbellehumeur/SlicerWebSub) **without** opening the Slicer WebSub module in 3D Slicer.
 
 All runtime folders live under **`WebSubInterface/`**.
 
@@ -51,7 +51,7 @@ Product docs: each folder under `SlicerWebSub-workers/<product>/README.md`.
 
 ## image_display/
 
-Slicer as an image display client (`3DSLICER-ID` actor). Requires **3D Slicer** and an open DICOM database, but **not** the Slicer Hub module.
+Slicer as an image display client (`3DSLICER-ID` actor). Requires **3D Slicer** and an open DICOM database, but **not** the Slicer WebSub module.
 
 ```bash
 cd WebSubInterface

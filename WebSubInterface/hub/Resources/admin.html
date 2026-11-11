@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Slicer Hub</title>
+    <title>3D Slicer WebSub</title>
     <link rel="icon" id="app-favicon" type="image/png" href="/static/images/3DSlicer-DesktopIcon.png">
     <style>
         :root {
@@ -1027,10 +1027,10 @@
             window.addEventListener('blur', deactivateShiftPolka);
             const isSlicer = theme === '3dslicer';
             const HUB_PRODUCT_NAME = isSlicer
-                ? '3D Slicer Hub'
+                ? '3D Slicer WebSub'
                 : 'Server Hub API';
             document.title = isSlicer
-                ? '3D Slicer Hub'
+                ? '3D Slicer WebSub'
                 : 'VolView Server Hub API';
             const favicon = document.getElementById('app-favicon');
             if (favicon) {
@@ -1102,7 +1102,7 @@
             <div class="header-brand">
                 <img class="header-logo-volview" src="/static/images/hub-radio-favicon.svg" alt="Hub">
                 <img class="header-logo-slicer" src="/static/images/3DSlicer-DesktopIcon.png" alt="3D Slicer">
-                <span class="header-title">3D Slicer Hub</span>
+                <span class="header-title">3D Slicer WebSub</span>
             </div>
             <div class="header-actions">
                 <div class="metrics-row">
@@ -2393,7 +2393,7 @@
             return `
             <div class="about-disclaimer">
                 <h4>License</h4>
-                <p>Slicer Hub is distributed under the <a href="${escapeHtml(licenseUrl)}" target="_blank" rel="noopener noreferrer">MIT License</a>.</p>
+                <p>Slicer WebSub is distributed under the <a href="${escapeHtml(licenseUrl)}" target="_blank" rel="noopener noreferrer">MIT License</a>.</p>
                 <h4>Acknowledgements</h4>
                 <p><strong>3D Slicer</strong> &mdash; open-source platform for medical image computing from the <a href="https://www.slicer.org/" target="_blank" rel="noopener noreferrer">3D Slicer community</a>.</p>
             </div>`;
@@ -2403,8 +2403,8 @@
             <div class="about-disclaimer">
                 <h4>Standards and trademarks</h4>
                 <p>DICOM&reg; is the registered trademark of the National Electrical Manufacturers Association (NEMA) for its standards publications relating to digital imaging and communications in medicine. FHIR&reg; and related HL7 marks are registered trademarks of Health Level Seven International (HL7). IHE&reg; is a registered trademark of HIMSS. VolView&reg; is a trademark of Kitware, Inc. OHIF&reg; is a trademark of the Open Health Imaging Foundation. Imaging Data Commons&reg; is a trademark of the National Cancer Institute.</p>
-                <p>The Slicer Hub (including its hub, clients, and documentation) references ideas, workflows, and vocabulary drawn from these standards&mdash;such as DICOM objects and metadata, FHIR and FHIRcast-style context and events, and IHE actor roles (for example, Image Display and Evidence Creator)&mdash;and product names such as VolView, OHIF, and Imaging Data Commons solely to describe interoperability behavior.</p>
-                <p><strong>Slicer Hub is not part of these standards.</strong> It is not published by NEMA, HL7, or HIMSS, and is not an IHE Integration Profile, a FHIR implementation guide, or a DICOM conformance statement. Use of standard names and terms does not imply endorsement, certification, or official status. All other product and company names are trademarks of their respective owners.</p>
+                <p>The Slicer WebSub (including its hub, clients, and documentation) references ideas, workflows, and vocabulary drawn from these standards&mdash;such as DICOM objects and metadata, FHIR and FHIRcast-style context and events, and IHE actor roles (for example, Image Display and Evidence Creator)&mdash;and product names such as VolView, OHIF, and Imaging Data Commons solely to describe interoperability behavior.</p>
+                <p><strong>Slicer WebSub is not part of these standards.</strong> It is not published by NEMA, HL7, or HIMSS, and is not an IHE Integration Profile, a FHIR implementation guide, or a DICOM conformance statement. Use of standard names and terms does not imply endorsement, certification, or official status. All other product and company names are trademarks of their respective owners.</p>
             </div>`;
 
         function aboutBannerSrc() {
@@ -2505,7 +2505,7 @@
 
         async function showAboutHub() {
             closeHubSettings();
-            let aboutName = 'Slicer Hub';
+            let aboutName = 'Slicer WebSub';
             let aboutDescription =
                 '3D Slicer extension for desktop integration workflows for healthcare providers and researchers.';
             let aboutHomepage = 'https://github.com/mbellehumeur/SlicerHub/';
@@ -2534,7 +2534,7 @@
                 <div class="about-header-text">
                     <h3 id="aboutHubTitle">About ${escapeHtml(aboutName)}</h3>
                 </div>
-                <p class="about-body">${escapeHtml(aboutDescription)} This admin page is embedded in the hub. See the <a href="${escapeHtml(aboutHomepage)}" target="_blank" rel="noopener noreferrer">3D Slicer Slicer Hub extension</a> documentation.</p>
+                <p class="about-body">${escapeHtml(aboutDescription)} This admin page is embedded in the hub. See the <a href="${escapeHtml(aboutHomepage)}" target="_blank" rel="noopener noreferrer">3D Slicer Slicer WebSub extension</a> documentation.</p>
                 ${ABOUT_LICENSE_ACK_HTML(aboutHomepage)}
                 ${ABOUT_TRADEMARK_HTML}
                 <div class="modal-actions modal-actions-about">

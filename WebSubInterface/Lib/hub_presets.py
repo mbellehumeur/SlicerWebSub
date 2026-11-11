@@ -10,7 +10,7 @@ their own copy of presets.
 from __future__ import annotations
 
 from typing import Any, Dict, Optional
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 
 # Public placeholder — not a credential (see module docstring).
 _MOCK_CLIENT_SECRET = "client_secret_3d_Slicer"
@@ -82,6 +82,20 @@ def hub_admin_url_for_name(hub_name: str) -> Optional[str]:
         else "admin"
     )
     return urljoin(hub_base, admin_path)
+
+
+def hub_worklist_url_for_name(hub_name: str) -> Optional[str]:
+    """Worklist SPA URL for a configured hub (``{origin}/worklist-client/``)."""
+    hub_def = HUBS.get(hub_name)
+    if not hub_def:
+        return None
+    hub_endpoint = str(hub_def.get("hub_endpoint", "")).strip()
+    if not hub_endpoint:
+        return None
+    parsed = urlparse(hub_endpoint)
+    if not parsed.scheme or not parsed.netloc:
+        return None
+    return f"{parsed.scheme}://{parsed.netloc}/worklist-client/"
 
 
 def local_slicer_hub_admin_url(port: int) -> str:

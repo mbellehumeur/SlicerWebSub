@@ -1,6 +1,6 @@
-# Slicer Hub (`hub`)
+# Slicer WebSub (`hub`)
 
-FastAPI implementation of a [FHIRcast](https://fhircast.org/)-style hub for the Slicer Hub stack (`@slicer-hub/client`, OHIF hub extension, Slicer Image Display / service providers). Subscribers connect over WebSocket (`/bind/{endpoint}`) or WebSub callbacks; the hub fans out events and collates typed request/response traffic.
+FastAPI implementation of a [FHIRcast](https://fhircast.org/)-style hub for the Slicer WebSub stack (`@slicer-hub/client`, OHIF hub extension, Slicer Image Display / service providers). Subscribers connect over WebSocket (`/bind/{endpoint}`) or WebSub callbacks; the hub fans out events and collates typed request/response traffic.
 
 Run standalone:
 

@@ -1,4 +1,4 @@
-# Fly.io — Slicer Hub OIDC auth (template)
+# Fly.io — Slicer WebSub OIDC auth (template)
 # Copy to fly.oidc.toml and set your app name / region / VM size.
 # Same image as fly.toml (mock); auth differs only via secrets.
 #

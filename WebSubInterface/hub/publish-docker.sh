@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build and push Slicer Hub images to GitHub Container Registry.
+# Build and push Slicer WebSub images to GitHub Container Registry.
 #
 #   ghcr.io/mbellehumeur/slicer-hub:slim|latest  — API + WS only
 #   ghcr.io/mbellehumeur/slicer-hub:full         — includes SPA mounts

@@ -1,6 +1,6 @@
-# Slicer Hub + VolView Run Guide
+# Slicer WebSub + VolView Run Guide
 
-This project includes a FastAPI-based Slicer Hub and an optional VolView Python RPC layer.
+This project includes a FastAPI-based Slicer WebSub and an optional VolView Python RPC layer.
 
 ## Prerequisites
 
@@ -19,19 +19,19 @@ cd server
 poetry install
 ```
 
-### Option A: Slicer Hub + VolView RPC together (recommended)
+### Option A: Slicer WebSub + VolView RPC together (recommended)
 
 ```bash
 poetry run python server_with_hub.py --port 4014 ./examples/example_api.py
 ```
 
-### Option B: Slicer Hub only
+### Option B: Slicer WebSub only
 
 ```bash
 poetry run python server_with_hub.py --port 4014
 ```
 
-### Option C: VolView RPC only (no Slicer Hub)
+### Option C: VolView RPC only (no Slicer WebSub)
 
 ```bash
 poetry run python -m volview_server -P 4014 ./examples/example_api.py
@@ -70,7 +70,7 @@ If `npm run dev` is already running, restart it after changing `.env.local`.
 
 ## Deploy to Azure Web App (ZIP)
 
-This section deploys the combined Slicer Hub + VolView RPC server to Azure App Service.
+This section deploys the combined Slicer WebSub + VolView RPC server to Azure App Service.
 
 ### 1) Prepare deployment package
 

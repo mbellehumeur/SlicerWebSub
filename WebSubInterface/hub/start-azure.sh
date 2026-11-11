@@ -24,5 +24,5 @@ export HUB_HTTP_PAYLOAD_TTL_SECONDS="${HUB_HTTP_PAYLOAD_TTL_SECONDS:-300}"
 export HUB_HTTP_PAYLOAD_MAX_TOTAL_BYTES="${HUB_HTTP_PAYLOAD_MAX_TOTAL_BYTES:-2147483648}"
 export HUB_FILENAME_POLICY="${HUB_FILENAME_POLICY:-on}"
 
-echo "Starting Slicer Hub on ${HOST}:${PORT}"
+echo "Starting Slicer WebSub on ${HOST}:${PORT}"
 exec python hub.py --host "${HOST}" --port "${PORT}"

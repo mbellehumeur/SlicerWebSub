@@ -1,1 +1,1 @@
-"""Slicer Hub helpers (not Slicer loadable modules)."""
+"""Slicer WebSub helpers (not Slicer loadable modules)."""

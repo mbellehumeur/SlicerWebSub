@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Standalone Slicer Hub implementation.
+Standalone Slicer WebSub implementation.
 This is a complete, standalone implementation that doesn't depend on WebServer.py.
 Uses FastAPI for HTTP server and WebSocket support.
 
@@ -211,7 +211,7 @@ async def lifespan(app: FastAPI):
         await hub.reset_all()
 
 
-app = FastAPI(title="Slicer Hub", lifespan=lifespan)
+app = FastAPI(title="Slicer WebSub", lifespan=lifespan)
 
 # Trust reverse-proxy forwarded headers (Azure App Service) before CORS.
 _proxy_trusted_hosts = os.environ.get("HUB_PROXY_TRUSTED_HOSTS", "*").strip() or "*"
@@ -254,10 +254,10 @@ app.middleware("http")(hub_request_logging_middleware)
 
 
 def main():
-    """Main function to run the Slicer Hub server"""
+    """Main function to run the Slicer WebSub server"""
     import argparse
 
-    parser = argparse.ArgumentParser(description="Standalone Slicer Hub Server")
+    parser = argparse.ArgumentParser(description="Standalone Slicer WebSub Server")
     parser.add_argument("--port", type=int, default=2018, help="Server port (default: 2018)")
     parser.add_argument("--host", type=str, default="0.0.0.0", help="Server host (default: 0.0.0.0)")
     args = parser.parse_args()
@@ -271,7 +271,7 @@ def main():
     hub.set_server_port(args.port)
 
     print("=" * 60)
-    print("Standalone Slicer Hub Server")
+    print("Standalone Slicer WebSub Server")
     print("=" * 60)
     print(f"Server running on http://{args.host}:{args.port}")
     print(f"Hub API endpoint: http://{args.host}:{args.port}/api/hub/")

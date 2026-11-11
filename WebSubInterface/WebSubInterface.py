@@ -1,4 +1,4 @@
-"""3D Slicer scripted module: Slicer Hub."""
+"""3D Slicer scripted module: Slicer WebSub."""
 
 from __future__ import annotations
 
@@ -21,78 +21,32 @@ from Lib.ImageDisplayClient import ImageDisplayClientWidget
 class WebSubInterface(ScriptedLoadableModule):
     def __init__(self, parent):
         ScriptedLoadableModule.__init__(self, parent)
-        self.parent.title = _("Hub server")
+        self.parent.title = _("WebSub server")
         self.parent.categories = [_("Informatics")]
         self.parent.dependencies = []
         self.parent.contributors = ["Martin Bellehumeur"]
         self.parent.helpText = _(
             """
-            <a href="https://github.com/mbellehumeur/SlicerWebSub">SlicerWebSub on GitHub</a><br><br>
-            This extension is a
-            <a href="https://en.wikipedia.org/wiki/Publish%E2%80%93subscribe_pattern">WebSub-based</a>
-            desktop integration messaging infrastructure that connects users of image displays,
-            worklists, reporting tools, conferencing tools, remote inference models and AI Orchestrators.<br><br>
-            Try the
-            <a href="https://bellehumeur-engineering.com/worklist-client/">online example worklist client</a>
-            or watch the
-            <a href="https://youtu.be/xKQEOs1_9Bg">classroom vanishing brush tool</a>
-            along with this documentation to find out more.<br><br>
-            <b>Overview</b><br>
-            The extension aims to promote, train, develop, and demonstrate interoperability in medical imaging applications.
-            Its original intent was to support the
-            <a href="https://profiles.ihe.net/RAD/IRA/">IHE Integrated Reporting Application</a>
-            workflow. Over time, it has moved on to supporting the needs researchers and educators.
-            Supporting <a href="https://wiki.ihe.net/index.php/AI_Results">IHE AI Results</a> and example reporting apps are WIP.<br><br>
-            This python extension supplies the <b>HUB</b> and the Slicer Qt
-            <b>Image Display</b> client connection. Inference workers live in the sister
-            <a href="https://github.com/mbellehumeur/SlicerWebSub-workers">SlicerWebSub-workers</a>
-            repository. Together with
-            <a href="https://github.com/mbellehumeur/SlicerWebSub-js">javascript clients</a>,
-            the system includes:
-            <ul>
-            <li>a WebSub hub (<b>HUB</b> actor) for communication between applications and users</li>
-            <li>a Worklist application (<b>WORKLIST_CLIENT</b> actor)</li>
-            <li>Open-source medical imaging viewers (<b>IMAGE_DISPLAY</b> actors)</li>
-            <li>Open-source medical imaging inference models (<b>EVIDENCE_CREATOR</b> actors)</li>
-            <li>a DICOM SR reporting example (<b>REPORT_CREATOR</b> actor - WIP)</li>
-            <li>the <a href="https://imaging.datacommons.cancer.gov/">Imaging Data Commons</a> and the
-            <a href="https://www.slicer.org/">3D Slicer</a> DICOM DB as read-only image archives
-            (<b>IMAGE_ARCHIVE</b> actor)</li>
-            <li>an Authentication / identity provider with integration to the hub OIDC endpoints or built-in hub anonymous/mock authentication</li>
-            </ul>
-            The extension also includes features for education that are independent of the IHE Integrated Reporting workflow:
-            <ul>
-            <li>an example <a href="https://bellehumeur-engineering.com/classroom-client/">classroom application</a></li>
-            <li>creating, saving, and uploading teaching files and cohorts for class preparation</li>
-            <li>conferencing for collaborative viewing and teaching</li>
-            <li>a <a href="https://youtu.be/xKQEOs1_9Bg?si=-gtvlB3aeq3KF-dX">vanishing brush tool</a> for temporary annotations during conferencing</li>
-            <li>export to STL for 3D printing</li>
-            </ul>
-            Research and 3D Slicer functionalities, also independent of IHE, are included:
-            <ul>
-            <li>File transfer between applications</li>
-            <li>Medical Reality scenes communication for conferencing</li>
-            <li>SceneViews status on request with the long term goal of inference for multi-application hanging protocols.</li>
-            <li>Status-request messaging for using current information from other applications in the workflow</li>
-            <li>Slicer Qt Image Display client and DICOM DB study list (same python/websocket client)</li>
-            </ul>
-            File transfer allows inference servers to send their results directly back to the viewers without having to archived them to PACS first.
-            Research file formats like NIfTI, NRRD, and Zarr can be used.
-            Transfer is realized with multi-part POST to the hub and then GET retrieves from the receiving applications and service providers.
-            The file naming policy is described
-            <a href="https://github.com/mbellehumeur/SlicerWebSub/blob/main/WebSubInterface/docs/module/filename-policy.md">here</a>.<br><br>
-            The extension javascript client libraries can be used to participate in IHE reporting workflows but it does not include a FHIR server or a FHIR Diagnostic Report Creator.<br><br>
-            For open-source FHIRcast with a FHIR viewer and SMART authorization server, see the
-            <a href="https://ohif.org/modes/fhir-viewer/">OHIF FHIR Viewer</a> mode or
-            <a href="https://www.medplum.com/docs/fhircast">Medplum</a>.<br><br>
-            For an overview of common features and differences of the Slicer Hub vs FHIRcast see
-            <a href="https://github.com/mbellehumeur/SlicerWebSub/blob/main/WebSubInterface/docs/module/hub-description.md">docs/module/hub-description.md</a>.
+            This module connects 3D Slicer to a Slicer WebSub hub and can start a local hub.
+            Full product documentation:
+            <a href="https://github.com/mbellehumeur/SlicerWebSub">SlicerWebSub README</a>.<br><br>
+            <b>Image Display Client</b><br>
+            Choose a hub preset (for example local <code>SLICER-HUB</code> or a cloud hub), set the
+            topic under <b>User</b>, optionally enable <b>OIDC</b> for browser login, then
+            <b>Connect</b>. Use <b>Open</b> for the hub admin portal.
+            <b>Open worklist</b> opens the worklist client for the selected hub.
+            After connect, <b>Start a conference</b> creates or manages a collaborative
+            session.<br><br>
+            <b>Hub</b><br>
+            Expand the Hub section to run a hub inside Slicer: set the <b>Port</b>,
+            <b>Start</b> / <b>Stop</b> the process, and <b>Open Hub Portal</b> when it is running.
+            Point the Image Display Client at the same hub to subscribe as an image display.
             """
         )
         self.parent.acknowledgementText = _(
             """
             <b>License</b><br>
-            Slicer Hub is distributed under the
+            Slicer WebSub is distributed under the
             <a href="https://github.com/mbellehumeur/SlicerWebSub/blob/main/LICENSE.txt">MIT License</a>.<br><br>
             <b>Acknowledgements</b><br>
             <b>3D Slicer</b> &mdash; open-source platform for medical image computing from the
@@ -121,6 +75,9 @@ class WebSubInterface(ScriptedLoadableModule):
             <b>Slim</b> &mdash; interoperable slide microscopy viewer from the
             <a href="https://github.com/ImagingDataCommons/slim">Imaging Data Commons</a>
             (National Cancer Institute).<br><br>
+            <b>SlicerLive</b> &mdash; experimental WebGPU live 3D Slicer scenes in the browser from
+            <a href="https://github.com/pieper/SlicerLive/">SlicerLive</a>;
+            used for IRA / hub-mirror demos served from the hub.<br><br>
             <b>Standards and trademarks</b><br>
             DICOM&reg; is the registered trademark of the National Electrical Manufacturers Association (NEMA)
             for its standards publications relating to digital imaging and communications in medicine.
@@ -128,11 +85,11 @@ class WebSubInterface(ScriptedLoadableModule):
             IHE&reg; is a registered trademark of HIMSS. OsiriX&reg; is a trademark of Pixmeo SARL.
             OHIF&reg; is a trademark of the Open Health Imaging Foundation.
             Imaging Data Commons&reg; is a trademark of the National Cancer Institute.<br><br>
-            The Slicer Hub (including its hub, clients, and documentation) references ideas, workflows, and vocabulary
+            The Slicer WebSub (including its hub, clients, and documentation) references ideas, workflows, and vocabulary
             drawn from these standards&mdash;such as DICOM objects and metadata, FHIR and FHIRcast-style context and events,
             and IHE actor roles (for example, Image Display and Evidence Creator)&mdash;and product names such as OsiriX,
             OHIF, and Imaging Data Commons solely to describe interoperability behavior.<br><br>
-            <b>Slicer Hub is not part of these standards.</b>
+            <b>Slicer WebSub is not part of these standards.</b>
             It is not published by NEMA, HL7, or HIMSS, and is not an IHE Integration Profile, a FHIR implementation guide,
             or a DICOM conformance statement. Use of standard names and terms does not imply endorsement, certification,
             or official status. All other product and company names are trademarks of their respective owners.

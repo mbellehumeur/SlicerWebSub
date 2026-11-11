@@ -1,7 +1,7 @@
 # Hub description
 
 
-In addition to distributing FHIRcast events, Slicer Hub supports:
+In addition to distributing FHIRcast events, Slicer WebSub supports:
 
 - Requesting data from applications (collated request/response)
 - Binary file transfer (ephemeral payloads through the hub with multi-part POST/GET)

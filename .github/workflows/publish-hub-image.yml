@@ -1,4 +1,4 @@
-# Publish Slicer Hub Docker images to GHCR.
+# Publish Slicer WebSub Docker images to GHCR.
 #
 #   ghcr.io/<owner>/slicer-hub:slim|latest  — API + WebSocket
 #   ghcr.io/<owner>/slicer-hub:full         — with SPA mounts (workflow_dispatch only)

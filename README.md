@@ -1,10 +1,10 @@
-# Slicer Hub Extension
+# Slicer WebSub Extension
 
 <p align="center">
-  <img src="WebSubInterface/docs/images/banner.jpg" alt="Slicer Hub Banner" width="100%">
+  <img src="WebSubInterface/docs/images/banner.jpg" alt="Slicer WebSub Banner" width="100%">
 </p>
 
-The Slicer Hub extension is a [WebSub](https://www.w3.org/TR/websub/)  messaging infrastructure that connects users of medical image displays, worklists, reporting tools, conferencing tools, remote inference models and AI Orchestrators.
+The Slicer WebSub extension is a [WebSub](https://www.w3.org/TR/websub/)  messaging infrastructure that connects users of medical image displays, worklists, reporting tools, conferencing tools, remote inference models and AI Orchestrators.
 
 Try the [online example worklist client](https://bellehumeur-engineering.com/worklist-client/) or watch the [classroom vanishing brush tool](https://youtu.be/xKQEOs1_9Bg) along with this documentation to find out more.
 
@@ -64,7 +64,7 @@ File transfer allows inference servers to send their results directly back to th
 
 ## Background
 
-Slicer Hub is an extension of [FHIRcast](https://fhircast.hl7.org/). FHIRcast is the standard replacing Epic’s file drop interface for integration with PACS and reporting systems. It provides a secure event messaging infrastructure using a hub with websocket subscriptions.  The hub expands on the initial FHIRcast design to support research and education with additional data types and it utilizes more of the built-in capabilities of the WebSub infrastructure such as conferencing and chat.  For an overview of common features and differences with FHIRcast see [WebSubInterface/docs/module/hub-description.md](WebSubInterface/docs/module/hub-description.md).
+Slicer WebSub is an extension of [FHIRcast](https://fhircast.hl7.org/). FHIRcast is the standard replacing Epic’s file drop interface for integration with PACS and reporting systems. It provides a secure event messaging infrastructure using a hub with websocket subscriptions.  The hub expands on the initial FHIRcast design to support research and education with additional data types and it utilizes more of the built-in capabilities of the WebSub infrastructure such as conferencing and chat.  For an overview of common features and differences with FHIRcast see [WebSubInterface/docs/module/hub-description.md](WebSubInterface/docs/module/hub-description.md).
 
 
 <p align="center">
@@ -72,7 +72,7 @@ Slicer Hub is an extension of [FHIRcast](https://fhircast.hl7.org/). FHIRcast is
 </p>
 
 
-You can try WebSub integration with the [Slicer Hub worklist example](https://bellehumeur-engineering.com/worklist-client/). 
+You can try WebSub integration with the [Slicer WebSub worklist example](https://bellehumeur-engineering.com/worklist-client/). 
 
 <p align="center">
   <a href="https://bellehumeur-engineering.com/worklist-client/">
@@ -163,7 +163,7 @@ Since the service providers are not on the internet, you will get shared keys fo
 
 1. Open **3D Slicer**
 2. Open the **Extension Manager**
-3. Search for **Slicer Hub**
+3. Search for **Slicer WebSub**
 4. Click **Install**
 5. Restart 3D Slicer
 
@@ -180,7 +180,7 @@ Since the service providers are not on the internet, you will get shared keys fo
 
 CMake install copies `WebSubInterface/` into `qt-scripted-modules/WebSubInterface/` (module scripts + bundled folders).
 
-### Quick start (no Slicer Hub module)
+### Quick start (no Slicer WebSub module)
 
 ```bash
 cd WebSubInterface
@@ -274,7 +274,7 @@ Demo hub presets ship a public OAuth `client_secret` placeholder (mock hub OAuth
 
 ## License
 
-Slicer Hub is distributed under the [MIT License](LICENSE.txt).
+Slicer WebSub is distributed under the [MIT License](LICENSE.txt).
 
 ## Acknowledgements
 
@@ -298,6 +298,6 @@ Slicer Hub is distributed under the [MIT License](LICENSE.txt).
 
 DICOM® is the registered trademark of the National Electrical Manufacturers Association (NEMA) for its standards publications relating to digital imaging and communications in medicine. FHIR® and related HL7 marks are registered trademarks of Health Level Seven International (HL7). IHE® is a registered trademark of HIMSS. OHIF® is a trademark of the Open Health Imaging Foundation. Imaging Data Commons® is a trademark of the National Cancer Institute. OsiriX® is a registered trademark of Pixmeo SARL.
 
-The Slicer Hub (including its hub, clients, and documentation) references ideas, workflows, and vocabulary drawn from these standards—such as DICOM objects and metadata, FHIR and FHIRcast-style context and events, and IHE actor roles (for example, Image Display and Evidence Creator)—and product names such as OHIF, and Imaging Data Commons solely to describe interoperability behavior.
+The Slicer WebSub (including its hub, clients, and documentation) references ideas, workflows, and vocabulary drawn from these standards—such as DICOM objects and metadata, FHIR and FHIRcast-style context and events, and IHE actor roles (for example, Image Display and Evidence Creator)—and product names such as OHIF, and Imaging Data Commons solely to describe interoperability behavior.
 
-Slicer Hub is not part of these standards. It is not published by NEMA, HL7, or HIMSS, and is not an IHE Integration Profile, a FHIR implementation guide, or a DICOM conformance statement. Use of standard names and terms does not imply endorsement, certification, or official status. All other product and company names are trademarks of their respective owners.
+Slicer WebSub is not part of these standards. It is not published by NEMA, HL7, or HIMSS, and is not an IHE Integration Profile, a FHIR implementation guide, or a DICOM conformance statement. Use of standard names and terms does not imply endorsement, certification, or official status. All other product and company names are trademarks of their respective owners.

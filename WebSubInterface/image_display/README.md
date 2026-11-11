@@ -18,7 +18,7 @@ Quest Browser WebXR) wcomes from
 [SlicerRemoteView](https://github.com/dolegadolegowski/SlicerRemoteView)
 by **Damian Dołęga-Dołęgowski** (MIT). 
 
-## Run without Slicer Hub module
+## Run without Slicer WebSub module
 
 Requires 3D Slicer with DICOM database open:
 

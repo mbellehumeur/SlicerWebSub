@@ -1,4 +1,4 @@
-"""Slicer Hub — Hub subsection (embedded Slicer hub server UI)."""
+"""Slicer WebSub — Hub subsection (embedded Slicer hub server UI)."""
 
 from __future__ import annotations
 

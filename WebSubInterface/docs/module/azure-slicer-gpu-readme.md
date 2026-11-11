@@ -1,6 +1,6 @@
 # 3D Slicer on Azure (Windows GPU VM + RDP)
 
-This guide deploys **full 3D Slicer** (with the Slicer Hub extension) on an
+This guide deploys **full 3D Slicer** (with the Slicer WebSub extension) on an
 Azure **Windows GPU virtual machine**, accessed via Remote Desktop. It complements
 [azure-webapp.md](../hub/azure-webapp.md), which deploys the **Slicer hub** to
 Azure App Service (no GPU).
@@ -12,7 +12,7 @@ connects **outbound** to the hub.
 
 | Component | Where | GPU |
 |-----------|--------|-----|
-| Slicer Hub + OHIF / VolView / Slim | Azure App Service | No |
+| Slicer WebSub + OHIF / VolView / Slim | Azure App Service | No |
 | 3D Slicer Image Display client | Windows GPU VM (or local PC) | Optional (viewing) |
 | TotalSegmentator / IDC Claude service providers | Same GPU VM (or separate GPU host) | Yes for fast segmentation |
 
@@ -217,7 +217,7 @@ your client offers it.
 On the VM:
 
 1. Install **3D Slicer** from [https://download.slicer.org/](https://download.slicer.org/)
-2. **Extension Manager** → search **Slicer Hub** → Install → restart Slicer
+2. **Extension Manager** → search **Slicer WebSub** → Install → restart Slicer
 3. For GPU segmentation: install **TotalSegmentator** from Extension Manager
 
 Verify: load a volume and rotate in 3D. For TotalSegmentator, a test job should
@@ -231,7 +231,7 @@ Replace `<app>` with your App Service name from [azure-webapp.md](../hub/azure-w
 
 ### Image Display Client
 
-1. Slicer → **Slicer Hub** → **Image Display Client**
+1. Slicer → **Slicer WebSub** → **Image Display Client**
 2. Hub: **`SLICER-HUB-CLOUD`** (or set hub URL to
    `https://<app>.azurewebsites.net/api/hub`)
 3. Click **Connect**

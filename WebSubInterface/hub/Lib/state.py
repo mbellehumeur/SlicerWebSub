@@ -28,7 +28,7 @@ SUBSCRIPTION_REMOVED_EVENT = SUBSCRIPTION_REMOVED
 
 
 class Hub:
-    """Slicer Hub implementation for managing subscriptions and broadcasting events"""
+    """Slicer WebSub implementation for managing subscriptions and broadcasting events"""
     
     def __init__(self):
         self.subscriptions: List[Dict] = []
@@ -771,5 +771,5 @@ class Hub:
         )
 
 
-# Global Slicer Hub instance
+# Global Slicer WebSub instance
 hub = Hub()

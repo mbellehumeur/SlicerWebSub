@@ -1,4 +1,4 @@
-# Slicer Hub (`hub`)
+# Slicer WebSub (`hub`)
 
 FastAPI Hub / FHIRcast hub. Run standalone:
 

@@ -334,7 +334,7 @@
         <text x="900" y="597" text-anchor="middle" class="small">Running on the tablet</text>
       </g>
 
-      <!-- Slicer Hub -->
+      <!-- Slicer WebSub -->
       <g id="castHub">
         <text x="648" y="368" text-anchor="start" class="heading">Hub</text>
       </g>
