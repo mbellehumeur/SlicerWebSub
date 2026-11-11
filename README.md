@@ -31,11 +31,20 @@ import HubClient from '@slicer-hub/client';
 const client = new HubClient({
     hub_endpoint: 'http://127.0.0.1:2018/api/hub',
     productName: 'MY-VIEWER',
-    events: ['imagingstudy-open', 'imagingstudy-close'],
+    events: ['imagingstudy-open', 'imagingstudy-close','status-request','scene-update'],
     autoReconnect: true 
   });
 
-client.onMessage((message) => console.log(message));  // Do something on open/close
+client.onMessage((message) => {
+  const event = message?.event;
+  if (event === 'imagingstudy-open' || event === 'imagingstudy-close') {
+    // 1. Process open / close (load or clear the study)
+  } else if (event === 'status-request') {
+    // 2. Respond to status-request (e.g. SceneViews / current context)
+  } else if (event === 'scene-update') {
+    // 3. Update the scene during conferencing
+  }
+});
 
 await client.connect(); // authenticate + token + subscribe 
 ```
