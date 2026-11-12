@@ -40,10 +40,19 @@ _SETTINGS_KEY_HUB = "imageDisplayHub"
 _SETTINGS_KEY_TOPIC = "imageDisplayTopic"
 _SETTINGS_KEY_OIDC = "imageDisplayOidc"
 
-_STATUS_TEXT_STYLE_IDLE = "color: palette(text);"
-_STATUS_TEXT_STYLE_CONNECTED = "color: #2e7d32; font-weight: bold;"
-_STATUS_TEXT_STYLE_ACTIVE = "color: #1a5f9e; font-weight: bold;"
-_STATUS_TEXT_STYLE_ERROR = "color: #c45c26; font-weight: bold;"
+_STATUS_EDIT_BASE_STYLE = (
+    "QPlainTextEdit { border: none; background: transparent; padding: 0; }"
+)
+_STATUS_TEXT_STYLE_IDLE = f"{_STATUS_EDIT_BASE_STYLE} QPlainTextEdit {{ color: palette(text); }}"
+_STATUS_TEXT_STYLE_CONNECTED = (
+    f"{_STATUS_EDIT_BASE_STYLE} QPlainTextEdit {{ color: #2e7d32; font-weight: bold; }}"
+)
+_STATUS_TEXT_STYLE_ACTIVE = (
+    f"{_STATUS_EDIT_BASE_STYLE} QPlainTextEdit {{ color: #1a5f9e; font-weight: bold; }}"
+)
+_STATUS_TEXT_STYLE_ERROR = (
+    f"{_STATUS_EDIT_BASE_STYLE} QPlainTextEdit {{ color: #c45c26; font-weight: bold; }}"
+)
 
 
 def _connected_status_text(detail: Dict[str, Any]) -> str:
@@ -143,7 +152,7 @@ class ImageDisplayClientWidget:
         self.disconnectButton: Optional[qt.QPushButton] = None
         self.openWorklistButton: Optional[qt.QPushButton] = None
         self.conferenceButton: Optional[qt.QPushButton] = None
-        self.statusLabel: Optional[qt.QLabel] = None
+        self.statusEdit: Optional[qt.QPlainTextEdit] = None
         self._conference_dialog: Optional[ConferenceDialog] = None
 
     def setup(self, section: qt.QWidget) -> None:
@@ -194,7 +203,7 @@ class ImageDisplayClientWidget:
         hub_index = self.hubComboBox.findText(saved_hub)
         if hub_index >= 0:
             self.hubComboBox.setCurrentIndex(hub_index)
-        self.openHubButton = qt.QPushButton(_("Open"))
+        self.openHubButton = qt.QPushButton(_("Open Hub Portal"))
         self.openHubButton.setSizePolicy(
             qt.QSizePolicy.Fixed, qt.QSizePolicy.Fixed
         )
@@ -245,14 +254,26 @@ class ImageDisplayClientWidget:
         # Keep last known / Slicer email if OIDC is on; clear only when user toggles OIDC on.
         self._apply_oidc_topic_ui(clear_when_enabling=False)
 
-        self.statusLabel = qt.QLabel(_("Disconnected"))
+        self.statusEdit = qt.QPlainTextEdit(_("Disconnected"))
+        self.statusEdit.setReadOnly(True)
+        self.statusEdit.setLineWrapMode(qt.QPlainTextEdit.WidgetWidth)
+        self.statusEdit.setHorizontalScrollBarPolicy(qt.Qt.ScrollBarAlwaysOff)
+        self.statusEdit.setVerticalScrollBarPolicy(qt.Qt.ScrollBarAsNeeded)
+        self.statusEdit.setTabChangesFocus(True)
+        self.statusEdit.setSizePolicy(
+            qt.QSizePolicy.Expanding, qt.QSizePolicy.Fixed
+        )
+        line_h = self.statusEdit.fontMetrics().lineSpacing()
+        self.statusEdit.setMinimumHeight(line_h * 2 + 8)
+        self.statusEdit.setMaximumHeight(line_h * 4 + 12)
         self._apply_status_style("idle")
         status_row = qt.QWidget()
         status_row_layout = qt.QHBoxLayout(status_row)
         status_row_layout.setContentsMargins(0, 0, 0, 0)
         status_heading = qt.QLabel(_("Status:"))
-        status_row_layout.addWidget(status_heading)
-        status_row_layout.addWidget(self.statusLabel, 1)
+        status_heading.setAlignment(qt.Qt.AlignLeft | qt.Qt.AlignTop)
+        status_row_layout.addWidget(status_heading, 0)
+        status_row_layout.addWidget(self.statusEdit, 1)
         layout.addRow(status_row)
 
     @staticmethod
@@ -402,7 +423,7 @@ class ImageDisplayClientWidget:
         self._main_queue_drain()
 
     def _apply_status_style(self, variant: str) -> None:
-        if not self.statusLabel:
+        if not self.statusEdit:
             return
         styles = {
             "idle": _STATUS_TEXT_STYLE_IDLE,
@@ -411,9 +432,15 @@ class ImageDisplayClientWidget:
             "error": _STATUS_TEXT_STYLE_ERROR,
             "failed": _STATUS_TEXT_STYLE_ERROR,
         }
-        self.statusLabel.setStyleSheet(
+        self.statusEdit.setStyleSheet(
             styles.get(variant, _STATUS_TEXT_STYLE_IDLE)
         )
+
+    def _set_status_text(self, text: str, tooltip: str = "") -> None:
+        if not self.statusEdit:
+            return
+        self.statusEdit.setPlainText(text)
+        self.statusEdit.toolTip = tooltip
 
     def _set_hub_session_buttons_enabled(self, enabled: bool) -> None:
         if self.disconnectButton:
@@ -468,16 +495,20 @@ class ImageDisplayClientWidget:
                 _("Could not open hub admin URL:\n{url}").format(url=admin_url)
             )
 
-    def _session_worklist_user(self) -> str:
-        """Connected session identity for opening worklist as that user."""
-        client = self._hub.get_client()
-        if client is not None:
-            name = (client.user_name or "").strip() or (client.topic or "").strip()
-            if name:
-                return name
-        topic = self._hub.get_topic()
+    def _session_worklist_topic(self) -> str:
+        """Hub topic for worklist launch (``userName`` + ``topic`` query params).
+
+        Prefer the live session topic (User field / OIDC email), never
+        ``subscriber.name`` or the fixed product ``user_name`` (3dslicer-server).
+        """
+        topic = (self._hub.get_topic() or "").strip()
         if topic:
             return topic
+        client = self._hub.get_client()
+        if client is not None:
+            topic = (client.topic or "").strip()
+            if topic:
+                return topic
         if self.topicEdit:
             return self.topicEdit.text.strip()
         return ""
@@ -492,10 +523,10 @@ class ImageDisplayClientWidget:
         if not self.hubComboBox:
             return
         hub_name = self.hubComboBox.currentText
-        user = ""
-        if self._hub.isHubConnected():
-            user = self._session_worklist_user()
-        worklist_url = hub_worklist_url_for_name(hub_name, user=user or None)
+        # Always pass topic when known so worklist boots on the same hub user
+        # as Image Display (connected or not — use topicEdit as fallback).
+        topic = self._session_worklist_topic()
+        worklist_url = hub_worklist_url_for_name(hub_name, user=topic or None)
         if not worklist_url:
             slicer.util.warningDisplay(
                 _("No worklist URL for hub {name}").format(name=hub_name)
@@ -527,12 +558,10 @@ class ImageDisplayClientWidget:
 
         self._set_fields_enabled(False)
         self._apply_status_style("active")
-        if self.statusLabel:
-            if oidc:
-                self.statusLabel.text = _("Opening browser for hub login…")
-            else:
-                self.statusLabel.text = _("Connecting…")
-            self.statusLabel.toolTip = ""
+        if oidc:
+            self._set_status_text(_("Opening browser for hub login…"))
+        else:
+            self._set_status_text(_("Connecting…"))
         if self.connectButton:
             self.connectButton.enabled = False
         self._set_hub_session_buttons_enabled(True)
@@ -625,9 +654,10 @@ class ImageDisplayClientWidget:
                     if k not in status_detail or detail.get(k)
                 }
             )
-            if self.statusLabel:
-                self.statusLabel.text = _connected_status_text(status_detail)
-                self.statusLabel.toolTip = _connected_status_tooltip(status_detail)
+            self._set_status_text(
+                _connected_status_text(status_detail),
+                _connected_status_tooltip(status_detail),
+            )
             if self.connectButton:
                 self.connectButton.enabled = False
             self._set_hub_session_buttons_enabled(True)
@@ -637,16 +667,14 @@ class ImageDisplayClientWidget:
             self._set_fields_enabled(False)
         elif state == "connecting":
             self._apply_status_style("active")
-            if self.statusLabel:
-                self.statusLabel.text = _("Connecting…")
+            self._set_status_text(_("Connecting…"))
             if self.connectButton:
                 self.connectButton.enabled = False
             self._set_hub_session_buttons_enabled(True)
             self._set_fields_enabled(False)
         elif state == "reconnecting":
             self._apply_status_style("active")
-            if self.statusLabel:
-                self.statusLabel.text = _("Reconnecting…")
+            self._set_status_text(_("Reconnecting…"))
             if self.connectButton:
                 self.connectButton.enabled = False
             self._set_hub_session_buttons_enabled(True)
@@ -654,19 +682,16 @@ class ImageDisplayClientWidget:
         elif state == "failed":
             self._apply_status_style("failed")
             reason = detail.get("reason") or _("Unknown error")
-            if self.statusLabel:
-                self.statusLabel.text = _("Cannot connect: {reason}").format(
-                    reason=reason
-                )
+            self._set_status_text(
+                _("Cannot connect: {reason}").format(reason=reason)
+            )
             if self.connectButton:
                 self.connectButton.enabled = True
             self._set_hub_session_buttons_enabled(False)
             self._set_fields_enabled(True)
         elif state == "disconnected":
             self._apply_status_style("idle")
-            if self.statusLabel:
-                self.statusLabel.text = _("Disconnected")
-                self.statusLabel.toolTip = ""
+            self._set_status_text(_("Disconnected"))
             if self.connectButton:
                 self.connectButton.enabled = True
             self._set_hub_session_buttons_enabled(False)
@@ -674,13 +699,12 @@ class ImageDisplayClientWidget:
         elif state == "error":
             self._apply_status_style("error")
             reason = detail.get("reason")
-            if self.statusLabel:
-                if reason:
-                    self.statusLabel.text = _("Connection error: {reason}").format(
-                        reason=reason
-                    )
-                else:
-                    self.statusLabel.text = _("Connection error (reconnecting)")
+            if reason:
+                self._set_status_text(
+                    _("Connection error: {reason}").format(reason=reason)
+                )
+            else:
+                self._set_status_text(_("Connection error (reconnecting)"))
             if self.connectButton:
                 self.connectButton.enabled = False
             self._set_hub_session_buttons_enabled(True)
@@ -689,23 +713,23 @@ class ImageDisplayClientWidget:
     def _refresh_status(self) -> None:
         if self._hub.isHubConnected():
             self._apply_status_style("connected")
-            if self.statusLabel:
+            if self.statusEdit:
                 status_detail = self._hub.get_status_detail()
                 load_status = status_detail.get("load_status") or ""
                 self._apply_status_style(
                     "error" if load_status == "error" else "connected"
                 )
-                self.statusLabel.text = _connected_status_text(status_detail)
-                self.statusLabel.toolTip = _connected_status_tooltip(status_detail)
+                self._set_status_text(
+                    _connected_status_text(status_detail),
+                    _connected_status_tooltip(status_detail),
+                )
             if self.connectButton:
                 self.connectButton.enabled = False
             self._set_hub_session_buttons_enabled(True)
             self._set_fields_enabled(False)
         elif not self._hub.isHubThreadRunning():
             self._apply_status_style("idle")
-            if self.statusLabel:
-                self.statusLabel.text = _("Disconnected")
-                self.statusLabel.toolTip = ""
+            self._set_status_text(_("Disconnected"))
             if self.connectButton:
                 self.connectButton.enabled = True
             self._set_hub_session_buttons_enabled(False)

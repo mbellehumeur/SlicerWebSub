@@ -27,7 +27,14 @@ ID_ACTOR_KEYWORD = "ID"
 STATUS_DATA_TYPE = "status"
 LIVESCENE_DATA_TYPE = "livescene"
 DICOM_DATA_TYPE = "dicom"
-SCENEVIEW_BUILD_TIMEOUT_SECONDS = 9.0
+# STATUS must finish inside the hub's default ~2s request fan-out so worklist
+# presence (and second-tab probes) see 3DSLICER-ID. Viewport Qt grab()/PNG encode
+# was the slow path; STATUS uses placeholders instead.
+#
+# TODO(later): optional rich STATUS / sceneview path that restores real viewport
+# grabs (capture_viewport_thumbnail_png) under an explicit longer timeoutSeconds,
+# without blocking the fast presence reply.
+STATUS_BUILD_TIMEOUT_SECONDS = 1.5
 LIVESCENE_EXPORT_TIMEOUT_SECONDS = 120.0
 DICOM_EXPORT_TIMEOUT_SECONDS = 300.0
 
@@ -105,16 +112,15 @@ async def handle_status_request(
     product_name = _resolve_product_name(connection)
     open_context = connection.get_last_open_context()
 
-    def build_status_payload(
-        *, fast_placeholder_thumbnails: bool = False
-    ) -> Dict[str, Any]:
+    def build_status_payload() -> Dict[str, Any]:
         from build_sceneview_response import build_sceneview_response_payload
         from local_dicom_worklist import list_local_dicom_worklist_studies
 
+        # Skip viewport grab() — placeholders only (see STATUS_BUILD_TIMEOUT note).
         sceneview = build_sceneview_response_payload(
             product_name,
             open_context,
-            fast_placeholder_thumbnails=fast_placeholder_thumbnails,
+            fast_placeholder_thumbnails=True,
         )
         studies = list_local_dicom_worklist_studies()
         return {
@@ -127,17 +133,27 @@ async def handle_status_request(
 
     try:
         payload = await asyncio.wait_for(
-            connection.run_on_main_thread(lambda: build_status_payload()),
-            timeout=SCENEVIEW_BUILD_TIMEOUT_SECONDS,
+            connection.run_on_main_thread(build_status_payload),
+            timeout=STATUS_BUILD_TIMEOUT_SECONDS,
         )
     except asyncio.TimeoutError:
         LOGGER.error(
-            "status sceneview build timed out after %.0fs; sending placeholder thumbnails",
-            SCENEVIEW_BUILD_TIMEOUT_SECONDS,
+            "status build timed out after %.1fs; sending minimal online payload",
+            STATUS_BUILD_TIMEOUT_SECONDS,
         )
-        payload = await connection.run_on_main_thread(
-            lambda: build_status_payload(fast_placeholder_thumbnails=True)
-        )
+        payload = {
+            "source": "status",
+            "product": product_name,
+            "items": [{"key": "availability", "value": "online"}],
+            "sceneview": {
+                "source": "sceneview",
+                "product": product_name,
+                "window": {},
+                "display": {},
+                "viewports": [],
+            },
+            "studies": [],
+        }
 
     client.send_hub_request_response(
         correlation_id,
