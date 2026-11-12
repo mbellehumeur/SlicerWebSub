@@ -169,6 +169,7 @@ class HubServerWidget:
         self._hub_process: Optional[qt.QProcess] = None
         self._hub_pid: int = 0
         self._hub_port: int = DEFAULT_HUB_PORT
+        self._stopping: bool = False
 
         self.portSpinBox: Optional[qt.QSpinBox] = None
         self.startButton: Optional[qt.QPushButton] = None
@@ -208,7 +209,7 @@ class HubServerWidget:
         port_row_layout.addStretch(1)
         layout.addRow(_("Port:"), port_row)
 
-        self.statusLabel = qt.QLabel(_("Stopped"))
+        self.statusLabel = qt.QLabel(_("Hub stopped"))
         self.statusLabel.setStyleSheet(_STATUS_TEXT_STYLE_IDLE)
         layout.addRow(_("Status:"), self.statusLabel)
 
@@ -237,6 +238,7 @@ class HubServerWidget:
             return
         port = _hub_port_from_spin(self.portSpinBox)
         self._hub_port = port
+        self._stopping = False
         try:
             _ensure_hub_deps()
         except HubDepsDeclinedError:
@@ -306,6 +308,8 @@ class HubServerWidget:
         known_pid = self._hub_pid
         proc = self._hub_process
         owned_hub = proc is not None or known_pid > 0
+        self._stopping = True
+        had_qprocess = proc is not None
         if proc is not None:
             _force_stop_qprocess(proc)
             proc.deleteLater()
@@ -318,12 +322,16 @@ class HubServerWidget:
         self._hub_pid = 0
         self._reset_ui_stopped()
         if _port_is_listening("127.0.0.1", port):
+            self._stopping = False
             self._set_status(
                 _("Port {0} still in use — close other hub processes").format(port),
                 _STATUS_TEXT_STYLE_ERROR,
             )
             return
-        self._set_status(_("Stopped"), _STATUS_TEXT_STYLE_IDLE)
+        self._set_status(_("Hub stopped"), _STATUS_TEXT_STYLE_IDLE)
+        # finished() clears _stopping when a QProcess was owned; otherwise clear now.
+        if not had_qprocess:
+            self._stopping = False
 
     def _on_open_admin(self) -> None:
         port = _hub_port_from_spin(self.portSpinBox)
@@ -346,11 +354,15 @@ class HubServerWidget:
                 if exit_code == 0
                 else qt.QProcess.CrashExit
             )
+        user_stopped = self._stopping
+        self._stopping = False
         self._hub_process = None
         self._hub_pid = 0
         self._reset_ui_stopped()
-        if exit_status == qt.QProcess.NormalExit and exit_code == 0:
-            self._set_status(_("Stopped"), _STATUS_TEXT_STYLE_IDLE)
+        if user_stopped or (
+            exit_status == qt.QProcess.NormalExit and exit_code == 0
+        ):
+            self._set_status(_("Hub stopped"), _STATUS_TEXT_STYLE_IDLE)
         else:
             self._set_status(
                 _("Hub exited ({0})").format(exit_code),
@@ -364,4 +376,6 @@ class HubServerWidget:
         pass
 
     def exit(self) -> None:
-        self._stop_owned_hub()
+        # Match Slicer WebServer: leaving the module must not stop the process.
+        # Hub stops only via Stop button or cleanup() (module unload).
+        pass

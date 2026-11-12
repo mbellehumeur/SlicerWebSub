@@ -17,9 +17,10 @@ HUB_CONFERENCE_POLL_MS = 30_000
 HUB_CONFERENCE_EXIT_ACK_MS = 1200
 
 HUB_CONFERENCE_TITLE_PRESETS = [
-    "Test conference",
+    "Anatomy class",
     "Tumor Board",
     "Case discussion",
+    "Test conference",
     "Pedicle screw",
 ]
 

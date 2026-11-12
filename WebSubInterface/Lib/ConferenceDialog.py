@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional
+import threading
+from typing import Any, Callable, Dict, List, Optional
 
 import qt
 
+import slicer
 from slicer.i18n import tr as _
 
 from .conference import (
@@ -26,31 +28,7 @@ LOGGER = logging.getLogger("WebSubInterface.ConferenceDialog")
 _STATUS_STYLE_SUCCESS = "color: #2e7d32;"
 _STATUS_STYLE_ERROR = "color: #c45c26;"
 
-
-class _ConferenceFetchWorker(qt.QThread):
-    """Background fetch for conference topics and active conferences."""
-
-    finished_with_data = qt.Signal(object, object, object)
-
-    def __init__(
-        self,
-        hub_endpoint: str,
-        parent: Optional[qt.QObject] = None,
-    ) -> None:
-        super().__init__(parent)
-        self._hub_endpoint = hub_endpoint
-
-    def run(self) -> None:
-        topics: List[str] = []
-        conferences: List[Dict[str, Any]] = []
-        error: Optional[str] = None
-        try:
-            topics = fetch_conference_topics(self._hub_endpoint)
-            conferences = fetch_conferences(self._hub_endpoint)
-        except Exception as exc:
-            LOGGER.warning("Conference fetch failed: %s", exc)
-            error = str(exc)
-        self.finished_with_data.emit(topics, conferences, error)
+_PHI_WARNING_SETTINGS_KEY = "WebSubInterface/DontShowConferencePhiWarning"
 
 
 class ConferenceDialog(qt.QDialog):
@@ -59,21 +37,32 @@ class ConferenceDialog(qt.QDialog):
     def __init__(
         self,
         parent: Optional[qt.QWidget] = None,
+        on_active_changed: Optional[Callable[[bool], None]] = None,
     ) -> None:
-        super().__init__(parent)
+        # PythonQt: prefer explicit QDialog.__init__ over super().
+        qt.QDialog.__init__(self, parent)
         self.setWindowTitle(_("Conferencing"))
         self.setModal(False)
         self.setMinimumWidth(336)
         self.setMaximumWidth(400)
 
+        self._on_active_changed = on_active_changed
         self._hub_endpoint = ""
         self._session_topic = ""
         self._subscriber_name = ""
         self._connected = False
         self._available_topics: List[str] = []
         self._conferences: List[Dict[str, Any]] = []
-        self._fetch_worker: Optional[_ConferenceFetchWorker] = None
+        self._fetch_generation = 0
         self._busy = False
+        self._fetch_lock = threading.Lock()
+        self._pending_fetch: Optional[
+            tuple[int, List[str], List[Dict[str, Any]], Optional[str]]
+        ] = None
+        # Main-thread only: poll for worker results (never start Qt timers off-thread).
+        self._fetch_poll_timer = qt.QTimer(self)
+        self._fetch_poll_timer.setInterval(50)
+        self._fetch_poll_timer.timeout.connect(self._poll_fetch_result)
 
         root = qt.QVBoxLayout(self)
         root.setContentsMargins(18, 16, 18, 16)
@@ -105,7 +94,7 @@ class ConferenceDialog(qt.QDialog):
         for preset in HUB_CONFERENCE_TITLE_PRESETS:
             self._title_combo.addItem(preset, preset)
         self._title_combo.addItem(_("Other…"), "other")
-        default_index = self._title_combo.findData("Tumor Board")
+        default_index = self._title_combo.findData("Anatomy class")
         if default_index >= 0:
             self._title_combo.setCurrentIndex(default_index)
         self._title_combo.currentIndexChanged.connect(self._on_title_preset_changed)
@@ -155,7 +144,8 @@ class ConferenceDialog(qt.QDialog):
         root.addWidget(self._manage_section)
 
         close_button = qt.QPushButton(_("Close"))
-        close_button.clicked.connect(self.close)
+        # clicked(bool) must not be forwarded to QWidget.close() (PythonQt).
+        close_button.clicked.connect(self._on_close)
         root.addWidget(close_button)
 
     def configure(
@@ -172,18 +162,27 @@ class ConferenceDialog(qt.QDialog):
         self._connected = bool(connected)
         self._clear_status()
 
-    def showEvent(self, event: qt.QShowEvent) -> None:
-        super().showEvent(event)
+    def refresh(self) -> None:
+        """Reload topics/conferences (call after show())."""
         self._refresh_data()
 
-    def _on_title_preset_changed(self) -> None:
-        is_other = self._title_combo.currentData() == "other"
+    def _on_close(self, *_args) -> None:
+        self.close()
+
+    @staticmethod
+    def _qt_value(obj: Any, name: str) -> Any:
+        """Read a Qt getter that PythonQt may expose as property or method."""
+        value = getattr(obj, name)
+        return value() if callable(value) else value
+
+    def _on_title_preset_changed(self, *_args) -> None:
+        is_other = self._qt_value(self._title_combo, "currentData") == "other"
         self._custom_title_edit.setVisible(is_other)
 
     def _resolved_title(self) -> str:
-        preset = str(self._title_combo.currentData() or "").strip()
+        preset = str(self._qt_value(self._title_combo, "currentData") or "").strip()
         if preset == "other":
-            return self._custom_title_edit.text.strip()
+            return str(self._qt_value(self._custom_title_edit, "text") or "").strip()
         return preset
 
     def _current_conference(self) -> Optional[Dict[str, Any]]:
@@ -242,16 +241,50 @@ class ConferenceDialog(qt.QDialog):
         if not self._hub_endpoint:
             self._set_status("error", _("No hub endpoint configured."))
             return
-        if self._fetch_worker and self._fetch_worker.isRunning():
-            return
+
+        self._fetch_generation += 1
+        generation = self._fetch_generation
+        hub_endpoint = self._hub_endpoint
+
+        with self._fetch_lock:
+            self._pending_fetch = None
 
         self._set_busy(True)
         self._set_topics_placeholder(_("Loading users…"))
+        if not self._fetch_poll_timer.isActive():
+            self._fetch_poll_timer.start()
 
-        worker = _ConferenceFetchWorker(self._hub_endpoint, self)
-        self._fetch_worker = worker
-        worker.finished_with_data.connect(self._on_fetch_finished)
-        worker.start()
+        # Plain thread for HTTP; marshal UI via main-thread poll timer.
+        def work() -> None:
+            topics: List[str] = []
+            conferences: List[Dict[str, Any]] = []
+            error: Optional[str] = None
+            try:
+                topics = fetch_conference_topics(hub_endpoint)
+                conferences = fetch_conferences(hub_endpoint)
+            except Exception as exc:
+                LOGGER.warning("Conference fetch failed: %s", exc)
+                error = str(exc)
+            with self._fetch_lock:
+                self._pending_fetch = (generation, topics, conferences, error)
+
+        threading.Thread(
+            target=work,
+            name="Hub-ConferenceFetch",
+            daemon=True,
+        ).start()
+
+    def _poll_fetch_result(self) -> None:
+        with self._fetch_lock:
+            pending = self._pending_fetch
+            self._pending_fetch = None
+        if pending is None:
+            return
+        self._fetch_poll_timer.stop()
+        generation, topics, conferences, error = pending
+        if generation != self._fetch_generation:
+            return
+        self._on_fetch_finished(topics, conferences, error)
 
     def _on_fetch_finished(
         self,
@@ -259,7 +292,6 @@ class ConferenceDialog(qt.QDialog):
         conferences: List[Dict[str, Any]],
         error: Optional[str],
     ) -> None:
-        self._fetch_worker = None
         self._set_busy(False)
         self._available_topics = list(topics or [])
         self._conferences = list(conferences or [])
@@ -273,6 +305,15 @@ class ConferenceDialog(qt.QDialog):
             return
 
         self._show_create_mode()
+
+    def _notify_active_changed(self, active: bool) -> None:
+        callback = self._on_active_changed
+        if callback is None:
+            return
+        try:
+            callback(bool(active))
+        except Exception as exc:
+            LOGGER.warning("Conference active callback failed: %s", exc)
 
     def _show_manage_mode(self, conference: Dict[str, Any]) -> None:
         self._create_section.hide()
@@ -292,10 +333,12 @@ class ConferenceDialog(qt.QDialog):
         self._exit_button.text = (
             _("End conference") if is_host else _("Leave conference")
         )
+        self._notify_active_changed(True)
 
     def _show_create_mode(self) -> None:
         self._manage_section.hide()
         self._create_section.show()
+        self._notify_active_changed(False)
 
         host_topic = self._session_topic
         self._topics_list.clear()
@@ -321,17 +364,17 @@ class ConferenceDialog(qt.QDialog):
 
     def _selected_topics(self) -> List[str]:
         selected: List[str] = []
-        for index in range(self._topics_list.count):
+        for index in range(int(self._qt_value(self._topics_list, "count") or 0)):
             item = self._topics_list.item(index)
             if item is None:
                 continue
-            if item.flags() == qt.Qt.NoItemFlags:
+            if self._qt_value(item, "flags") == qt.Qt.NoItemFlags:
                 continue
-            if item.checkState() == qt.Qt.Checked:
-                selected.append(item.text())
+            if self._qt_value(item, "checkState") == qt.Qt.Checked:
+                selected.append(str(self._qt_value(item, "text") or ""))
         return selected
 
-    def _on_create(self) -> None:
+    def _on_create(self, *_args) -> None:
         if not self._connected:
             self._set_status("error", _("Connect to the Slicer hub first."))
             return
@@ -357,7 +400,15 @@ class ConferenceDialog(qt.QDialog):
                 title,
                 selected,
             )
-            self._set_status("success", _("Conference created."))
+            self._clear_status()
+            slicer.util.warningDisplay(
+                _(
+                    "Be mindful if your DICOM database contains patient images or PHI."
+                ),
+                windowTitle=_("Conference created"),
+                parent=self,
+                dontShowAgainSettingsKey=_PHI_WARNING_SETTINGS_KEY,
+            )
             self._refresh_data()
         except Exception as exc:
             LOGGER.warning("Create conference failed: %s", exc)
@@ -365,7 +416,7 @@ class ConferenceDialog(qt.QDialog):
         finally:
             self._set_busy(False)
 
-    def _on_exit(self) -> None:
+    def _on_exit(self, *_args) -> None:
         conference = self._current_conference()
         if not conference:
             return

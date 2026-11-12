@@ -209,6 +209,7 @@ async def lifespan(app: FastAPI):
             pass
         hub_logger.info("Slicer hub shutting down: closing WebSocket connections")
         await hub.reset_all()
+        hub_logger.info("Slicer hub stopped")
 
 
 app = FastAPI(title="Slicer WebSub", lifespan=lifespan)

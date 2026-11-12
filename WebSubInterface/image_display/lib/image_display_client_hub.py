@@ -10,6 +10,8 @@ from typing import Any, Callable, Dict, List, Optional, TypeVar
 from hub_client import (
     ANNOTATION_DELETE,
     ANNOTATION_UPDATE,
+    CONFERENCE_END,
+    CONFERENCE_START,
     IMAGINGSTUDY_CLOSE,
     IMAGINGSTUDY_OPEN,
     MESHSCENE_UPDATE,
@@ -50,6 +52,8 @@ DISPLAY_EVENTS = [
     MESHSCENE_UPDATE,
     ANNOTATION_UPDATE,
     ANNOTATION_DELETE,
+    CONFERENCE_START,
+    CONFERENCE_END,
 ]
 AUTO_RECONNECT = True
 
@@ -342,6 +346,9 @@ class ImageDisplayClientConnection:
         self._clear_conference_state()
         self.clear_load_state()
 
+    def is_conference_active(self) -> bool:
+        return bool(self._conference_active)
+
     def _clear_conference_state(self) -> None:
         self._conference_active = False
         self._conference_title = ""
@@ -540,10 +547,10 @@ class ImageDisplayClientConnection:
 
             handle_annotation_delete(self, message)
             return
-        if hub_event == "conference-start":
+        if hub_event == CONFERENCE_START:
             self._handle_conference_start(message)
             return
-        if hub_event == "conference-end":
+        if hub_event == CONFERENCE_END:
             self._handle_conference_end(message)
             return
         if is_request_event(hub_event):

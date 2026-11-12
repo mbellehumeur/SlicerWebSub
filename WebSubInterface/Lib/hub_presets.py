@@ -10,7 +10,7 @@ their own copy of presets.
 from __future__ import annotations
 
 from typing import Any, Dict, Optional
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urlencode, urljoin, urlparse
 
 # Public placeholder — not a credential (see module docstring).
 _MOCK_CLIENT_SECRET = "client_secret_3d_Slicer"
@@ -84,8 +84,16 @@ def hub_admin_url_for_name(hub_name: str) -> Optional[str]:
     return urljoin(hub_base, admin_path)
 
 
-def hub_worklist_url_for_name(hub_name: str) -> Optional[str]:
-    """Worklist SPA URL for a configured hub (``{origin}/worklist-client/``)."""
+def hub_worklist_url_for_name(
+    hub_name: str,
+    *,
+    user: Optional[str] = None,
+) -> Optional[str]:
+    """Worklist SPA URL for a configured hub (``{origin}/worklist-client/``).
+
+    When ``user`` is non-empty, appends ``userName`` and ``topic`` query params
+    so the worklist boots as that user (same as the in-app open-another-user flow).
+    """
     hub_def = HUBS.get(hub_name)
     if not hub_def:
         return None
@@ -95,7 +103,12 @@ def hub_worklist_url_for_name(hub_name: str) -> Optional[str]:
     parsed = urlparse(hub_endpoint)
     if not parsed.scheme or not parsed.netloc:
         return None
-    return f"{parsed.scheme}://{parsed.netloc}/worklist-client/"
+    base = f"{parsed.scheme}://{parsed.netloc}/worklist-client/"
+    user_value = str(user or "").strip()
+    if not user_value:
+        return base
+    query = urlencode({"userName": user_value, "topic": user_value})
+    return f"{base}?{query}"
 
 
 def local_slicer_hub_admin_url(port: int) -> str:

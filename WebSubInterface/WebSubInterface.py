@@ -120,7 +120,7 @@ class WebSubInterfaceWidget(ScriptedLoadableModuleWidget):
         self.layout.addWidget(clientSection)
         self.imageDisplayClientWidget.setup(clientSection)
 
-        hubSection = self._ctk_collapsible_section(_("Hub"), expanded=False)
+        hubSection = self._ctk_collapsible_section(_("Hub"), expanded=True)
         self.layout.addWidget(hubSection)
         self.hubWidget.setup(hubSection)
 

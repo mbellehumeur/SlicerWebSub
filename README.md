@@ -1,16 +1,14 @@
 # Slicer WebSub Extension
 
 <p align="center">
-  <img src="WebSubInterface/docs/images/banner.png" alt="Slicer WebSub Banner" width="100%">
+  <img src="WebSubInterface/docs/images/banner.jpg" alt="Slicer WebSub Banner" width="100%">
 </p>
 
 The Slicer WebSub extension is a [WebSub](https://www.w3.org/TR/websub/)  messaging infrastructure that connects users of medical image displays, worklists, reporting tools, conferencing tools, remote inference models and AI Orchestrators.
 
-Try the [online example worklist client](https://bellehumeur-engineering.com/worklist-client/) or watch the [classroom vanishing brush tool](https://youtu.be/xKQEOs1_9Bg) along with this documentation to find out more.
-
 ## Overview
 
-The extension aims to  promote, train, develop, and demonstrate interoperability in medical imaging applications. Its original intent was to support the [IHE Integrated Reporting Application](https://profiles.ihe.net/RAD/IRA/) workflow. Over time, it has moved on to supporting the needs researchers and educators.  Supporting [IHE AI Results](https://wiki.ihe.net/index.php/AI_Results) is a work in progress.
+The extension aims to  promote and develop interoperability in medical imaging applications. Its original intent was to be a sandbox for the [IHE Integrated Reporting Application](https://profiles.ihe.net/RAD/IRA/) workflow. Over time, it has moved on to supporting the needs researchers and educators.  Supporting [IHE AI Results](https://wiki.ihe.net/index.php/AI_Results) is a work in progress.
  
 This python extension supplies the **HUB** and the Slicer Qt **Image Display** client connection. Inference workers live in the sister [SlicerWebSub-workers](https://github.com/mbellehumeur/SlicerWebSub-workers) repository. Together with [javascript clients](https://github.com/mbellehumeur/SlicerWebSub-js), the system includes:
 

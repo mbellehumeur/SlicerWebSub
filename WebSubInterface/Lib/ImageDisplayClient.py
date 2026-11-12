@@ -416,6 +416,27 @@ class ImageDisplayClientWidget:
             self.disconnectButton.enabled = enabled
         if self.conferenceButton:
             self.conferenceButton.enabled = enabled
+            if enabled:
+                self._update_conference_button()
+            else:
+                self._update_conference_button(active=False)
+
+    def _update_conference_button(self, active: Optional[bool] = None) -> None:
+        """Toggle Start vs Manage label from conference participation."""
+        if not self.conferenceButton:
+            return
+        if active is None:
+            active = bool(self._hub.is_conference_active())
+        if active:
+            self.conferenceButton.text = _("Manage conference")
+            self.conferenceButton.setToolTip(
+                _("View or leave the active Hub conference")
+            )
+        else:
+            self.conferenceButton.text = _("Start a conference")
+            self.conferenceButton.setToolTip(
+                _("Create or manage a Hub conference")
+            )
 
     def _set_fields_enabled(self, enabled: bool) -> None:
         if self.hubComboBox:
@@ -447,7 +468,8 @@ class ImageDisplayClientWidget:
         if not self.hubComboBox:
             return
         hub_name = self.hubComboBox.currentText
-        worklist_url = hub_worklist_url_for_name(hub_name)
+        user = self.topicEdit.text.strip() if self.topicEdit else ""
+        worklist_url = hub_worklist_url_for_name(hub_name, user=user)
         if not worklist_url:
             slicer.util.warningDisplay(
                 _("No worklist URL for hub {name}").format(name=hub_name)
@@ -533,7 +555,10 @@ class ImageDisplayClientWidget:
 
         if self._conference_dialog is None:
             parent = self._section if self._section else None
-            self._conference_dialog = ConferenceDialog(parent)
+            self._conference_dialog = ConferenceDialog(
+                parent,
+                on_active_changed=self._update_conference_button,
+            )
 
         self._conference_dialog.configure(
             hub_endpoint=hub_endpoint,
@@ -544,6 +569,7 @@ class ImageDisplayClientWidget:
         self._conference_dialog.show()
         self._conference_dialog.raise_()
         self._conference_dialog.activateWindow()
+        self._conference_dialog.refresh()
 
     def _on_hub_connection_state(
         self, state: str, detail: Optional[Dict[str, Any]] = None
@@ -580,6 +606,9 @@ class ImageDisplayClientWidget:
             if self.connectButton:
                 self.connectButton.enabled = False
             self._set_hub_session_buttons_enabled(True)
+            self._update_conference_button(
+                active=bool(str(status_detail.get("conference_title") or "").strip())
+            )
             self._set_fields_enabled(False)
         elif state == "connecting":
             self._apply_status_style("active")

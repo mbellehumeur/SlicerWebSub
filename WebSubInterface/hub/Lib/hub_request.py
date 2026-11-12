@@ -23,6 +23,11 @@ from request_parse import (
     _request_timeout_seconds,
     _request_topic_from_body,
 )
+from conference_logic import (
+    _conference_host_topic,
+    _conference_participant_topics,
+    _normalize_conference_topics,
+)
 from state import hub
 from subscriptions import (
     _actor_to_text,
@@ -36,6 +41,37 @@ from subscriptions import (
 )
 
 
+def _request_allowed_topics(topic_param: str) -> Set[str]:
+    """Topics that may receive a hub request for ``topic_param``.
+
+    When ``topic_param`` belongs to an active conference (host or attendee),
+    include every participant topic — same idea as publish conference fan-out —
+    so e.g. IRA on STUDENT-1 can reach Image Display on USER-1.
+    """
+    topic = (topic_param or "").strip()
+    if not topic:
+        return set()
+    for conference in hub.conferences:
+        host = _conference_host_topic(conference)
+        attendees = _normalize_conference_topics(conference.get("topics", []))
+        if topic != host and topic not in attendees:
+            continue
+        return {t for t in _conference_participant_topics(conference) if t}
+    return {topic}
+
+
+def _subscription_matches_allowed_topics(
+    sub_topic: str, allowed_topics: Set[str]
+) -> bool:
+    """True when ``sub_topic`` matches any of ``allowed_topics`` (or is ``*``)."""
+    if not allowed_topics:
+        return True
+    for allowed in allowed_topics:
+        if _subscription_topic_matches(sub_topic, allowed):
+            return True
+    return False
+
+
 async def _handle_hub_request(request_data: dict):
     """Dispatch a typed request to all matching subscribers and return collated responses.
 
@@ -44,11 +80,12 @@ async def _handle_hub_request(request_data: dict):
     forwarded on the WebSocket fan-out.
 
     Matches subscriptions by ``(topic, target.actor[, target.product.name])`` (``target.actor``
-    ``*`` or omitted = all roles on topic). The requester's ``subscriber.name`` is never a
-    dispatch target. Sends the client's ``hub.event`` to each connected match and waits for the
-    matching ``<datatype>-response`` events on the bind WebSocket. Timeout defaults to
-    ``HUB_REQUEST_TIMEOUT_SECONDS`` (2s); use ``event.context.timeoutSeconds`` (max 300) or
-    ``idc-claude-request`` (180s min).
+    ``*`` or omitted = all roles on topic). When the request topic belongs to an active
+    conference, all participant topics are eligible (same idea as publish fan-out). The
+    requester's ``subscriber.name`` is never a dispatch target. Sends the client's
+    ``hub.event`` to each connected match and waits for the matching ``<datatype>-response``
+    events on the bind WebSocket. Timeout defaults to ``HUB_REQUEST_TIMEOUT_SECONDS`` (2s);
+    use ``event.context.timeoutSeconds`` (max 300) or ``idc-claude-request`` (180s min).
     """
     if not isinstance(request_data, dict):
         raise HTTPException(status_code=400, detail="JSON body must be an object")
@@ -105,15 +142,17 @@ async def _handle_hub_request(request_data: dict):
 
     # Find ALL connected dispatch targets (topic, hub.events, actor[, product]) — same
     # eligibility as publish; subscriber topic ``*`` matches any request topic.
+    # Conference: request topic expands to all participant topics (publish parity).
     # The requester never receives its own request (callers already know local state).
+    allowed_topics = _request_allowed_topics(topic_param) if topic_param else set()
     target_subscriptions: List[Dict] = []
     target_exists = False
     target_any_match = False  # any subscription matched the (topic, actor[, product]) filter
     for sub in hub.get_subscriptions():
         if sub.get("subscriber", "").strip() == subscriber:
             continue
-        if topic_param and not _subscription_topic_matches(
-            sub.get("topic", ""), topic_param
+        if topic_param and not _subscription_matches_allowed_topics(
+            sub.get("topic", ""), allowed_topics
         ):
             continue
         subscribed_events = (sub.get("events") or "").lower()
