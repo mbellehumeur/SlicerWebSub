@@ -56,14 +56,14 @@ _STATUS_TEXT_STYLE_ERROR = (
 
 
 def _connected_status_text(detail: Dict[str, Any]) -> str:
-    subscriber = str(detail.get("subscriber_name") or "").strip()
+    topic = str(detail.get("topic") or "").strip()
     last_event = str(detail.get("last_event") or "").strip()
     study_id = str(detail.get("open_study_id") or "").strip()
     load_status = str(detail.get("load_status") or "").strip()
     load_error = str(detail.get("load_error") or "").strip()
 
-    if subscriber:
-        text = _("Connected as {name}").format(name=subscriber)
+    if topic:
+        text = _("Connected as {name}").format(name=topic)
     else:
         text = _("Connected")
 
@@ -98,6 +98,9 @@ def _connected_status_text(detail: Dict[str, Any]) -> str:
 
 def _connected_status_tooltip(detail: Dict[str, Any]) -> str:
     lines = []
+    topic = str(detail.get("topic") or "").strip()
+    if topic:
+        lines.append(_("Topic: {name}").format(name=topic))
     subscriber = str(detail.get("subscriber_name") or "").strip()
     if subscriber:
         lines.append(_("Subscriber: {name}").format(name=subscriber))
@@ -523,9 +526,11 @@ class ImageDisplayClientWidget:
         if not self.hubComboBox:
             return
         hub_name = self.hubComboBox.currentText
-        # Always pass topic when known so worklist boots on the same hub user
-        # as Image Display (connected or not — use topicEdit as fallback).
-        topic = self._session_worklist_topic()
+        # Only pass topic when connected so worklist boots as that hub user.
+        # Disconnected: bare /worklist-client/ (no userName/topic).
+        topic = ""
+        if self._hub.isHubConnected():
+            topic = self._session_worklist_topic()
         worklist_url = hub_worklist_url_for_name(hub_name, user=topic or None)
         if not worklist_url:
             slicer.util.warningDisplay(
