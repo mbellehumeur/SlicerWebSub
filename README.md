@@ -8,9 +8,9 @@ The Slicer WebSub extension is a [WebSub](https://www.w3.org/TR/websub/)  messag
 
 ## Overview
 
-The extension aims to  promote and develop interoperability in medical imaging applications. Its original intent was to be a sandbox for the [IHE Integrated Reporting Application](https://profiles.ihe.net/RAD/IRA/) workflow. Over time, it has moved on to supporting the needs researchers and educators.  Supporting [IHE AI Results](https://wiki.ihe.net/index.php/AI_Results) is a work in progress.
+The original aim of this project was to  promote and develop interoperability in medical imaging applications as a sandbox for the [IHE Integrated Reporting Application](https://profiles.ihe.net/RAD/IRA/) workflow. Over time, it has moved on to supporting the needs researchers and educators.  Supporting [IHE AI Results](https://wiki.ihe.net/index.php/AI_Results) is a work in progress.
  
-This python extension supplies the **HUB** and the Slicer Qt **Image Display** client connection. Inference workers live in the sister [SlicerWebSub-workers](https://github.com/mbellehumeur/SlicerWebSub-workers) repository. Together with [javascript clients](https://github.com/mbellehumeur/SlicerWebSub-js), the system includes:
+This repository supplies the **HUB** and the Slicer Qt **Image Display** client connection. Inference workers live in the sister [SlicerWebSub-workers](https://github.com/mbellehumeur/SlicerWebSub-workers) repository. Together with [javascript clients](https://github.com/mbellehumeur/SlicerWebSub-js), the system includes:
 
 - **HUB** actor: a WebSub hub for communication between applications and users
 - **WORKLIST_CLIENT** actor: a worklist application (described [here](https://github.com/mbellehumeur/SlicerWebSub-js#worklist-and-classroom))
