@@ -48,4 +48,4 @@ primary_region = "iad"
 
 [[vm]]
   size = "shared-cpu-4x"
-  memory = "1024mb"
+  memory = "4096mb"

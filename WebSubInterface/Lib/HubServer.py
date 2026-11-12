@@ -104,40 +104,6 @@ def _win_kill_process_tree(pid: int) -> bool:
         return False
 
 
-def _win_pids_listening_on_port(port: int) -> List[int]:
-    pids: List[int] = []
-    try:
-        completed = subprocess.run(
-            ["netstat", "-ano"],
-            capture_output=True,
-            text=True,
-            timeout=10,
-            check=False,
-        )
-        output = completed.stdout or ""
-    except (OSError, subprocess.TimeoutExpired):
-        return pids
-    port_suffix = f":{port}"
-    for line in output.splitlines():
-        upper = line.upper()
-        if "LISTENING" not in upper or port_suffix not in line:
-            continue
-        parts = line.split()
-        if not parts:
-            continue
-        try:
-            pids.append(int(parts[-1]))
-        except ValueError:
-            continue
-    seen = set()
-    unique: List[int] = []
-    for pid in pids:
-        if pid not in seen:
-            seen.add(pid)
-            unique.append(pid)
-    return unique
-
-
 def _force_stop_qprocess(proc: qt.QProcess) -> None:
     """Stop hub child process; on Windows use taskkill on the process tree."""
     pid = int(proc.processId()) if proc else 0
@@ -155,15 +121,6 @@ def _force_stop_qprocess(proc: qt.QProcess) -> None:
     if not proc.waitForFinished(5000):
         proc.kill()
         proc.waitForFinished(3000)
-
-
-def _stop_listeners_on_port(port: int, known_pid: int = 0) -> None:
-    if known_pid > 0:
-        _win_kill_process_tree(known_pid)
-    if not _is_windows():
-        return
-    for pid in _win_pids_listening_on_port(port):
-        _win_kill_process_tree(pid)
 
 
 class HubServerWidget:
@@ -451,18 +408,16 @@ class HubServerWidget:
         port = self._hub_port or _hub_port_from_spin(self.portSpinBox)
         known_pid = self._hub_pid
         proc = self._hub_process
-        owned_hub = proc is not None or known_pid > 0
         self._stopping = True
         had_qprocess = proc is not None
+        # Only stop the hub process tree Slicer started — never kill other
+        # listeners that may have taken the port after the hub died.
         if proc is not None:
             _force_stop_qprocess(proc)
             proc.deleteLater()
             self._hub_process = None
         elif known_pid > 0 and _is_windows():
             _win_kill_process_tree(known_pid)
-        # Port scan only when stopping a hub Slicer started (not external terminals).
-        if owned_hub and _port_is_listening("127.0.0.1", port):
-            _stop_listeners_on_port(port, known_pid)
         self._hub_pid = 0
         self._reset_ui_stopped()
         if _port_is_listening("127.0.0.1", port):
