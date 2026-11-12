@@ -14,7 +14,6 @@ from hub_client import (
     CONFERENCE_START,
     IMAGINGSTUDY_CLOSE,
     IMAGINGSTUDY_OPEN,
-    MESHSCENE_UPDATE,
     SCENE_UPDATE,
     HubClientOptions,
     HubConfig,
@@ -47,9 +46,7 @@ DISPLAY_EVENTS = [
     request_event_for("status"),
     request_event_for("livescene"),
     request_event_for("dicom"),
-    request_event_for("glb"),
     SCENE_UPDATE,
-    MESHSCENE_UPDATE,
     ANNOTATION_UPDATE,
     ANNOTATION_DELETE,
     CONFERENCE_START,
@@ -146,11 +143,13 @@ class ImageDisplayClientConnection:
         self._conference_participants: List[str] = []
         # Set while livesync subscribe awaits ImagingStudy-open fan-out payloadIds.
         self._livesync_blob_files_future: Optional[asyncio.Future] = None
-        self._mesh_bridge = None
         # LiveSync Hub sink armed (hub-mirror subscribed); idle-detach uses last inbound.
         self._livesync_armed = False
         self._livesync_last_inbound = 0.0
         self._mrson_hub_bridge = None
+        self._pending_access_token = ""
+        self._pending_id_token = ""
+        self._pending_user_name = ""
 
     def isHubThreadRunning(self) -> bool:
         return self._hub_thread is not None and self._hub_thread.is_alive()
@@ -246,44 +245,6 @@ class ImageDisplayClientConnection:
 
     def is_hub_live(self) -> bool:
         return bool(self._hub_live)
-
-    def get_mesh_bridge(self):
-        return self._mesh_bridge
-
-    async def ensure_mesh_bridge(self):
-        """Lazy-start mesh bridge on first glb-request (MetaQuest), not on every hub connect."""
-        if self._mesh_bridge is not None:
-            return self._mesh_bridge
-
-        def start_on_main():
-            from image_display_mesh_bridge import ImageDisplayMeshBridge
-
-            bridge = ImageDisplayMeshBridge(self, self._post_ui)
-            bridge.start()
-            return bridge
-
-        try:
-            bridge = await self.run_on_main_thread(start_on_main)
-            self._mesh_bridge = bridge
-            LOGGER.info("MetaQuest mesh bridge started (lazy on glb-request)")
-            return bridge
-        except Exception as exc:
-            LOGGER.warning("MetaQuest mesh bridge start failed: %s", exc)
-            return None
-
-    def _stop_mesh_bridge(self) -> None:
-        bridge = self._mesh_bridge
-        self._mesh_bridge = None
-        if bridge is None:
-            return
-
-        def stop_on_main() -> None:
-            try:
-                bridge.stop()
-            except Exception as exc:
-                LOGGER.warning("MetaQuest mesh bridge stop failed: %s", exc)
-
-        self.schedule_main_thread(stop_on_main, urgent=True)
 
     def _complete_livesync_blob_echo(self, message: Dict[str, Any]) -> None:
         """Fulfill pending livesync subscribe wait with hub-assigned payloadIds."""
@@ -441,6 +402,10 @@ class ImageDisplayClientConnection:
         product_name: str,
         product_version: str,
         status_callback: Callable[[str, Optional[Dict[str, Any]]], None],
+        *,
+        access_token: Optional[str] = None,
+        id_token: Optional[str] = None,
+        user_name: Optional[str] = None,
     ) -> None:
         global _active_connection
 
@@ -454,6 +419,9 @@ class ImageDisplayClientConnection:
         self._product_name = product_name
         self._product_version = product_version
         self._status_callback = status_callback
+        self._pending_access_token = str(access_token or "").strip()
+        self._pending_id_token = str(id_token or "").strip()
+        self._pending_user_name = str(user_name or "").strip()
         self._want_hub_unsubscribe = False
         self._hub_subscribed = False
         self._hub_live = False
@@ -475,7 +443,6 @@ class ImageDisplayClientConnection:
     def disconnectHub(self) -> None:
         global _active_connection
 
-        self._stop_mesh_bridge()
         self._livesync_armed = False
         self._livesync_last_inbound = 0.0
 
@@ -508,6 +475,9 @@ class ImageDisplayClientConnection:
         self._hub_live = False
         self._want_hub_unsubscribe = False
         self._status_callback = None
+        self._pending_access_token = ""
+        self._pending_id_token = ""
+        self._pending_user_name = ""
         self._reset_event_state()
         if _active_connection is self:
             _active_connection = None
@@ -763,10 +733,35 @@ class ImageDisplayClientConnection:
             if self._stop_event.is_set():
                 return
 
-            LOGGER.info(
-                "Image Display Client connecting to hub (mock or OIDC browser)…"
-            )
-            # connect() handles mock authorize/token and OIDC browser loopback.
+            pending_token = (self._pending_access_token or "").strip()
+            if pending_token:
+                pending_user = (
+                    (self._pending_user_name or "").strip()
+                    or (self._topic or "").strip()
+                )
+                pending_topic = (self._topic or "").strip() or pending_user
+                LOGGER.info(
+                    "Image Display Client connecting with worklist/pending token "
+                    "hub=%s topic=%s user_name=%s",
+                    self._hub_name,
+                    pending_topic,
+                    pending_user,
+                )
+                self._client._apply_session_tokens(
+                    access_token=pending_token,
+                    id_token=(self._pending_id_token or "").strip(),
+                    topic=pending_topic,
+                    user_name=pending_user,
+                    oidc_session=True,
+                )
+                self._pending_access_token = ""
+                self._pending_id_token = ""
+                self._pending_user_name = ""
+            else:
+                LOGGER.info(
+                    "Image Display Client connecting to hub (mock or OIDC browser)…"
+                )
+            # connect() uses pending tokens when set; else mock/OIDC browser.
             status = await self._client.connect()
             if self._stop_event.is_set():
                 return
@@ -791,12 +786,8 @@ class ImageDisplayClientConnection:
             )
             self._emit_status("connected", self._connected_status_detail())
             await self._request_status_once()
-            # Mesh bridge starts lazily on first glb-request (see ensure_mesh_bridge).
 
             while not self._stop_event.is_set():
-                mesh = self._mesh_bridge
-                if mesh is not None and mesh.consume_pending() and self._client:
-                    await mesh.publish_snapshot_now(self._client)
                 try:
                     from image_display_livesync_bridge import maybe_idle_detach_livesync
 
@@ -843,7 +834,6 @@ class ImageDisplayClientConnection:
             )
             self._emit_status("failed", {"reason": reason})
         finally:
-            self._stop_mesh_bridge()
             if self._client:
                 await self._client.close(hub_unsubscribe=self._want_hub_unsubscribe)
                 self._client = None

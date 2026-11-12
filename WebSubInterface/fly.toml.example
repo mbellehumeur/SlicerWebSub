@@ -3,7 +3,7 @@
 # Build context: this directory (WebSubInterface/).
 #
 # Deploy:
-#   cd WebSubInterface/hub && python make_zip.py --skip-build   # sync SPA mounts
+#   cd WebSubInterface/hub && python scripts/build_all_clients.py   # sync SPA mounts
 #   ./deploy-fly.sh mock
 #   # or: fly deploy -c fly.toml
 #

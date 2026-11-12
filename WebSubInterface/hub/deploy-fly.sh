@@ -11,8 +11,8 @@
 # Prereqs:
 #   - flyctl installed and logged in (fly auth login)
 #   - SPA mounts present under hub/ (website/, worklist-client/, OHIF-client/, …)
-#     Sync with:  python make_zip.py --skip-build
-#     (fix OHIF PUBLIC_URL=/ohif/ first if make_zip rejects Viewers dist)
+#     Build + sync:  python scripts/build_all_clients.py
+#     (Fly needs the folders under hub/, not slicer-hub.zip)
 #
 # --- Mock app (bellehumeur-hub → https://bellehumeur-engineering.com) ---
 #   fly secrets set -a bellehumeur-hub \
@@ -57,11 +57,11 @@ FLY_ARGS=("$@")
 cd "$SCRIPT_DIR"
 if [[ ! -f website/index.html ]]; then
   echo "Warning: hub/website/index.html missing — marketing site at / will 404." >&2
-  echo "  Build: cd bellehumeur-website && python build.py" >&2
-  echo "  Sync:  python make_zip.py --skip-build   (from this directory)" >&2
+  echo "  Build + sync:  python scripts/build_all_clients.py" >&2
 fi
 if [[ ! -f OHIF-client/index.html ]]; then
   echo "Warning: hub/OHIF-client/index.html missing — /ohif/ will not be served." >&2
+  echo "  Build + sync:  python scripts/build_all_clients.py" >&2
 fi
 if [[ ! -d "$HUB_IFACE/python_client/src/hub_client" ]]; then
   echo "Error: WebSubInterface/python_client missing (needed by Dockerfile.fly)." >&2

@@ -88,11 +88,14 @@ def hub_worklist_url_for_name(
     hub_name: str,
     *,
     user: Optional[str] = None,
+    extra_query: Optional[Dict[str, str]] = None,
 ) -> Optional[str]:
     """Worklist SPA URL for a configured hub (``{origin}/worklist-client/``).
 
     When ``user`` is non-empty, appends ``userName`` and ``topic`` query params
     so the worklist boots as that user (same as the in-app open-another-user flow).
+
+    Optional ``extra_query`` is merged into the query string.
     """
     hub_def = HUBS.get(hub_name)
     if not hub_def:
@@ -104,11 +107,20 @@ def hub_worklist_url_for_name(
     if not parsed.scheme or not parsed.netloc:
         return None
     base = f"{parsed.scheme}://{parsed.netloc}/worklist-client/"
+    params: Dict[str, str] = {}
     user_value = str(user or "").strip()
-    if not user_value:
+    if user_value:
+        params["userName"] = user_value
+        params["topic"] = user_value
+    if extra_query:
+        for key, value in extra_query.items():
+            key_s = str(key or "").strip()
+            if not key_s:
+                continue
+            params[key_s] = str(value or "")
+    if not params:
         return base
-    query = urlencode({"userName": user_value, "topic": user_value})
-    return f"{base}?{query}"
+    return f"{base}?{urlencode(params)}"
 
 
 def local_slicer_hub_admin_url(port: int) -> str:

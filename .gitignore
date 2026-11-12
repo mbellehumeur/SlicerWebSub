@@ -10,16 +10,14 @@ dist/
 
 # Local-only (kept on disk, not in git)
 AGENTS.md
-WebSubInterface/hub/make_zip.py
-WebSubInterface/hub/build_clients.sh
 
 # Slicer hub deploy artifacts
 WebSubInterface/hub/slicer-hub.zip
+WebSubInterface/hub/spa-release/
 deploy/
 WebSubInterface/hub/worklist-client/
 WebSubInterface/hub/reporting-client/
 WebSubInterface/hub/classroom-client/
-WebSubInterface/hub/metaquest/
 WebSubInterface/hub/slicerlive/
 WebSubInterface/hub/hub-mirror/
 WebSubInterface/hub/vtkjs-worklist-client/

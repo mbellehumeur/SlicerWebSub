@@ -157,7 +157,11 @@ class ImageDisplayClientWidget:
 
         self.openWorklistButton = qt.QPushButton(_("Open worklist"))
         self.openWorklistButton.setToolTip(
-            _("Open the hub worklist client in your default browser")
+            _(
+                "Open the hub worklist in your browser. "
+                "Check the user on the worklist conference icon, "
+                "enter the same User here, then Connect."
+            )
         )
         self.openWorklistButton.clicked.connect(self._on_open_worklist)
         self.openWorklistButton.setSizePolicy(
@@ -464,21 +468,40 @@ class ImageDisplayClientWidget:
                 _("Could not open hub admin URL:\n{url}").format(url=admin_url)
             )
 
+    def _session_worklist_user(self) -> str:
+        """Connected session identity for opening worklist as that user."""
+        client = self._hub.get_client()
+        if client is not None:
+            name = (client.user_name or "").strip() or (client.topic or "").strip()
+            if name:
+                return name
+        topic = self._hub.get_topic()
+        if topic:
+            return topic
+        if self.topicEdit:
+            return self.topicEdit.text.strip()
+        return ""
+
+    def _open_worklist_url(self, worklist_url: str) -> None:
+        if not qt.QDesktopServices.openUrl(qt.QUrl(worklist_url)):
+            slicer.util.warningDisplay(
+                _("Could not open worklist URL:\n{url}").format(url=worklist_url)
+            )
+
     def _on_open_worklist(self) -> None:
         if not self.hubComboBox:
             return
         hub_name = self.hubComboBox.currentText
-        user = self.topicEdit.text.strip() if self.topicEdit else ""
-        worklist_url = hub_worklist_url_for_name(hub_name, user=user)
+        user = ""
+        if self._hub.isHubConnected():
+            user = self._session_worklist_user()
+        worklist_url = hub_worklist_url_for_name(hub_name, user=user or None)
         if not worklist_url:
             slicer.util.warningDisplay(
                 _("No worklist URL for hub {name}").format(name=hub_name)
             )
             return
-        if not qt.QDesktopServices.openUrl(qt.QUrl(worklist_url)):
-            slicer.util.warningDisplay(
-                _("Could not open worklist URL:\n{url}").format(url=worklist_url)
-            )
+        self._open_worklist_url(worklist_url)
 
     def _on_connect(self) -> None:
         if not self.topicEdit or not self.hubComboBox:
@@ -505,9 +528,11 @@ class ImageDisplayClientWidget:
         self._set_fields_enabled(False)
         self._apply_status_style("active")
         if self.statusLabel:
-            self.statusLabel.text = (
-                _("Opening browser for hub login…") if oidc else _("Connecting…")
-            )
+            if oidc:
+                self.statusLabel.text = _("Opening browser for hub login…")
+            else:
+                self.statusLabel.text = _("Connecting…")
+            self.statusLabel.toolTip = ""
         if self.connectButton:
             self.connectButton.enabled = False
         self._set_hub_session_buttons_enabled(True)

@@ -8,8 +8,8 @@ Longest match wins (so `study.nii.gz` uses `.nii.gz`, not `.gz`).
 
 | Imaging | Archives / compression | Other |
 |---------|-------------------------|-------|
-| `.dcm`, `.dicom`, `.dic` | `.zip` | `.glb` (MetaQuest / `glb-send`) |
-| `.nii`, `.nii.gz`, `.nrrd` | `.tar`, `.tar.gz`, `.gz` | `.bin` (LiveScene / mrson blobs) |
+| `.dcm`, `.dicom`, `.dic` | `.zip` | `.bin` (LiveScene / mrson blobs) |
+| `.nii`, `.nii.gz`, `.nrrd` | `.tar`, `.tar.gz`, `.gz` | |
 | `.png`, `.jpg`, `.jpeg`, `.tif`, `.tiff`, `.bmp` | | |
 
 ## Double extensions

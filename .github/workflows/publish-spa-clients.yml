@@ -1,0 +1,111 @@
+# Build hub SPA trees and publish spa-*.zip assets to the floating
+# GitHub Release tag ``spa-clients`` (consumed by Slicer Hub Qt download).
+#
+# workflow_dispatch only. Light clients always; OHIF / Slim via inputs.
+
+name: Publish SPA clients
+
+on:
+  workflow_dispatch:
+    inputs:
+      include_ohif:
+        description: "Build and publish OHIF-client"
+        required: true
+        default: false
+        type: boolean
+      include_slim:
+        description: "Build and publish slim"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout SlicerWebSub
+        uses: actions/checkout@v4
+
+      - name: Checkout SlicerWebSub-js
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/SlicerWebSub-js
+          path: SlicerWebSub-js
+
+      - name: Checkout SlicerLive
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/SlicerLive
+          path: SlicerLive
+
+      - name: Checkout Viewers (OHIF)
+        if: inputs.include_ohif
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/Viewers
+          path: Viewers
+
+      - name: Checkout slim
+        if: inputs.include_slim
+        uses: actions/checkout@v4
+        with:
+          repository: ImagingDataCommons/slim
+          path: slim
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Setup pnpm
+        if: inputs.include_ohif || inputs.include_slim
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Prepare SPA trees
+        run: |
+          set -euo pipefail
+          CMD=(
+            python WebSubInterface/hub/scripts/prepare_spa_release.py
+            --hub-dir WebSubInterface/hub
+            --js-root SlicerWebSub-js
+            --slicerlive-root SlicerLive
+          )
+          if [[ "${{ inputs.include_ohif }}" == "true" ]]; then
+            CMD+=(--include-ohif --viewers-root Viewers)
+          fi
+          if [[ "${{ inputs.include_slim }}" == "true" ]]; then
+            CMD+=(--include-slim --slim-root slim)
+          fi
+          "${CMD[@]}"
+
+      - name: Pack spa-*.zip assets
+        run: |
+          python WebSubInterface/hub/scripts/pack_spa_release_assets.py \
+            --hub-dir WebSubInterface/hub \
+            --output-dir spa-release
+
+      - name: Publish / update spa-clients release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TAG=spa-clients
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" spa-release/*.zip --clobber
+          else
+            gh release create "$TAG" spa-release/*.zip \
+              --title "Hub SPA clients" \
+              --notes "Floating release of hub browser SPA trees for the Slicer WebSub Hub Qt download button. Re-run **Publish SPA clients** to refresh assets." \
+              --latest=false
+          fi
+          ls -la spa-release/

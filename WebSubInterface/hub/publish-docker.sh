@@ -13,7 +13,7 @@
 # Prereqs:
 #   - Docker Buildx
 #   - gh auth login  OR  echo $GITHUB_TOKEN | docker login ghcr.io -u USER --password-stdin
-#   - For :full — sync clients first:  python make_zip.py --skip-build
+#   - For :full — sync clients first:  python scripts/build_all_clients.py
 #
 set -euo pipefail
 
@@ -104,7 +104,7 @@ build_variant() {
       ignorefile="hub/.dockerignore.fly"
       tags+=(-t "${IMAGE}:full" -t "${IMAGE}:full-${GIT_SHA}")
       if ! spa_ready; then
-        echo "Error: sync SPA mounts before building :full (python make_zip.py --skip-build)" >&2
+        echo "Error: sync SPA mounts before building :full (python scripts/build_all_clients.py)" >&2
         exit 1
       fi
       ;;

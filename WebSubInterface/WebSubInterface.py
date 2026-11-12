@@ -29,18 +29,39 @@ class WebSubInterface(ScriptedLoadableModule):
             """
             This module connects 3D Slicer to a Slicer WebSub hub and can start a local hub.
             Full product documentation:
-            <a href="https://github.com/mbellehumeur/SlicerWebSub">SlicerWebSub README</a>.<br><br>
-            <b>Image Display Client</b><br>
-            Choose a hub preset (for example local <code>SLICER-HUB</code> or a cloud hub), set the
-            topic under <b>User</b>, optionally enable <b>OIDC</b> for browser login, then
-            <b>Connect</b>. Use <b>Open</b> for the hub admin portal.
-            <b>Open worklist</b> opens the worklist client for the selected hub.
-            After connect, <b>Start a conference</b> creates or manages a collaborative
-            session.<br><br>
-            <b>Hub</b><br>
-            Expand the Hub section to run a hub inside Slicer: set the <b>Port</b>,
-            <b>Start</b> / <b>Stop</b> the process, and <b>Open Hub Portal</b> when it is running.
-            Point the Image Display Client at the same hub to subscribe as an image display.
+            <a href="https://github.com/mbellehumeur/SlicerWebSub">SlicerWebSub README</a>.
+            Detailed usage for the browser worklist is in the worklist <b>About</b> box.<br><br>
+            <b>Quick test — cloud</b><br>
+            1. In <b>Image Display Client</b>, select hub <code>SLICER-HUB-CLOUD</code>
+            (leave <b>OIDC</b> unchecked for the mock cloud hub).<br>
+            2. Click <b>Open worklist</b> (do not Connect yet). Log in in the browser if asked.<br>
+            3. Check the <b>user on the worklist conference icon</b>, enter that same value
+            in Image Display <b>User</b>, then click <b>Connect</b>.<br>
+            4. In the worklist, open a study from the DICOM database; Slicer should load it.<br>
+            5. Optional after Connect: <b>Start a conference</b> with another user
+            (see <b>Open another user</b> in the conference icon).
+            Use the <b>SlicerLive</b> client <b>Scene</b> to control the attendee scene
+            and vanishing ToolBrush.
+            The <b>SlicerMirror</b> client can view the Qt viewer in sync.<br><br>
+            <b>Quick test — local hub</b><br>
+            1. Expand <b>Hub</b>. Under <b>SPAs</b>, check at least <b>Worklist</b>
+            (add OHIF or others if you need those viewers), then click <b>Download SPAs</b>
+            — clients are not shipped in the extension; this fetches them from GitHub
+            into the local hub folder. Restart the hub after download if it was already running.<br>
+            2. Set <b>Port</b> (default 2018), click <b>Start</b>, then
+            <b>Open Hub Portal</b> if you want the admin UI.<br>
+            3. In <b>Image Display Client</b>, select <code>SLICER-HUB</code>.<br>
+            4. Same as cloud: <b>Open worklist</b> → match conference-icon user in <b>User</b>
+            → <b>Connect</b> → open a study from the worklist DICOM database into Slicer.<br><br>
+            <b>Docker hub (optional)</b><br>
+            Public images on GHCR:
+            <code>ghcr.io/mbellehumeur/slicer-hub:slim</code> — hub API + WebSockets only;
+            <code>:full</code> — same plus SPA mounts (worklist, OHIF, …).
+            Use <b>full</b> for Open worklist against the container; use <b>slim</b> when you only need the API.
+            Run / env examples (mock and OIDC):
+            <a href="https://github.com/mbellehumeur/SlicerWebSub/blob/main/WebSubInterface/hub/README.md">hub README — Docker</a>.<br><br>
+            For browser IdP login against the OIDC cloud hub, select
+            <code>SLICER-HUB-CLOUD-OIDC</code> and enable <b>OIDC</b>, then Connect.
             """
         )
         self.parent.acknowledgementText = _(
@@ -49,6 +70,11 @@ class WebSubInterface(ScriptedLoadableModule):
             Slicer WebSub is distributed under the
             <a href="https://github.com/mbellehumeur/SlicerWebSub/blob/main/LICENSE.txt">MIT License</a>.<br><br>
             <b>Acknowledgements</b><br>
+            <b>SlicerLive</b> &mdash; experimental WebGPU live 3D Slicer scenes in the browser from
+            <a href="https://github.com/pieper/SlicerLive/">SlicerLive</a>;
+            used for IRA / hub-mirror demos served from the hub.<br><br>
+            <b>OHIF</b> &mdash; open-source zero-footprint viewer from the
+            <a href="https://ohif.org/">Open Health Imaging Foundation</a>.<br><br>
             <b>3D Slicer</b> &mdash; open-source platform for medical image computing from the
             <a href="https://www.slicer.org/">3D Slicer community</a>.
             This extension is built for and distributed through the 3D Slicer extension ecosystem.<br><br>
@@ -70,14 +96,9 @@ class WebSubInterface(ScriptedLoadableModule):
             <i>Radiographics</i> (<a href="https://doi.org/10.1148/rg.230180">2023</a>).<br><br>
             <b>OsiriX</b> &mdash; DICOM image processing software from
             <a href="https://www.osirix-viewer.com/">Pixmeo SARL</a>.<br><br>
-            <b>OHIF</b> &mdash; open-source zero-footprint viewer from the
-            <a href="https://ohif.org/">Open Health Imaging Foundation</a>.<br><br>
             <b>Slim</b> &mdash; interoperable slide microscopy viewer from the
             <a href="https://github.com/ImagingDataCommons/slim">Imaging Data Commons</a>
             (National Cancer Institute).<br><br>
-            <b>SlicerLive</b> &mdash; experimental WebGPU live 3D Slicer scenes in the browser from
-            <a href="https://github.com/pieper/SlicerLive/">SlicerLive</a>;
-            used for IRA / hub-mirror demos served from the hub.<br><br>
             <b>Standards and trademarks</b><br>
             DICOM&reg; is the registered trademark of the National Electrical Manufacturers Association (NEMA)
             for its standards publications relating to digital imaging and communications in medicine.
