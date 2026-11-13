@@ -22,7 +22,7 @@ SPA_FOLDERS = (
     "reporting-client",
     "classroom-client",
     "slicerlive",
-    "hub-mirror",
+    "slicer-mirror",
     "slim",
     "OHIF-client",
 )

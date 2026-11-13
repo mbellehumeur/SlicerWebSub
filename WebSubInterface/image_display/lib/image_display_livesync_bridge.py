@@ -1,12 +1,12 @@
 """Bridge LiveSync mrson wire messages over Hub scene-update.
 
-When hub-mirror sends ``{ op: subscribe, ... }`` via scene-update, Image Display:
+When slicer-mirror sends ``{ op: subscribe, ... }`` via scene-update, Image Display:
 1. Uploads blob chunks as multipart **scene-update** (HubBlobs + context.files[])
 2. Publishes **Snapshot** scene-update with the LiveScene document (first paint)
 3. Optionally attaches a Hub sink peer for live MRML events (when ModuleServer is up)
 
 ``{ op: unsubscribe }`` (and idle timeout) detaches the Hub sink so publishing stops
-when hub-mirror leaves. applyOps / reconcile are forwarded when the sink is up.
+when slicer-mirror leaves. applyOps / reconcile are forwarded when the sink is up.
 Image Display LiveSync path publishes **only** scene-update (no ImagingStudy-open).
 """
 
@@ -140,7 +140,7 @@ async def handle_scene_update(
         return
 
     if op == "ping":
-        # Keepalive from an open hub-mirror; activity already marked above.
+        # Keepalive from an open slicer-mirror; activity already marked above.
         return
 
     if op in ("applyOps", "reconcile", "getNode"):

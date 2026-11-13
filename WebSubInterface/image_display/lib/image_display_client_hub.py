@@ -143,7 +143,7 @@ class ImageDisplayClientConnection:
         self._conference_participants: List[str] = []
         # Set while livesync subscribe awaits ImagingStudy-open fan-out payloadIds.
         self._livesync_blob_files_future: Optional[asyncio.Future] = None
-        # LiveSync Hub sink armed (hub-mirror subscribed); idle-detach uses last inbound.
+        # LiveSync Hub sink armed (slicer-mirror subscribed); idle-detach uses last inbound.
         self._livesync_armed = False
         self._livesync_last_inbound = 0.0
         self._mrson_hub_bridge = None

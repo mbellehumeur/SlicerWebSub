@@ -38,13 +38,13 @@ CLIENT_SYNC_SPECS = (
     ("reporting-client", "reporting"),
     ("classroom-client", "classroom"),
     ("slicerlive", "slicerlive"),
-    ("hub-mirror", "hubmirror"),
+    ("slicer-mirror", "slicermirror"),
     ("slim", "slim"),
     ("OHIF-client", "ohif"),
     ("website", "website"),
 )
 REQUIRED_SYNC_KEYS = frozenset(
-    {"worklist", "reporting", "classroom", "slicerlive", "hubmirror", "ohif"}
+    {"worklist", "reporting", "classroom", "slicerlive", "slicermirror", "ohif"}
 )
 OPTIONAL_SYNC_KEYS = frozenset({"slim", "website"})
 
@@ -53,7 +53,7 @@ DIST_PARTS_UNDER_REPO = {
     "reporting": (),
     "classroom": (),
     "slicerlive": ("render", "demos", "ira"),
-    "hubmirror": ("render", "demos", "hub-mirror"),
+    "slicermirror": ("render", "demos", "slicer-mirror"),
     "slim": ("build",),
     "ohif": ("platform", "app", "dist"),
     "website": ("dist",),
@@ -62,13 +62,13 @@ DIST_PARTS_UNDER_REPO = {
 _ESBUILD_DENO = ("run", "-A", "npm:esbuild@0.21.5")
 _IRA_ENTRY = "render/demos/ira/ira-browser.ts"
 _IRA_OUT = "render/demos/ira/ira.js"
-_HUB_MIRROR_ENTRY = "render/demos/hub-mirror/hub-mirror-browser.ts"
-_HUB_MIRROR_OUT = "render/demos/hub-mirror/hub-mirror.js"
+_SLICER_MIRROR_ENTRY = "render/demos/slicer-mirror/slicer-mirror-browser.ts"
+_SLICER_MIRROR_OUT = "render/demos/slicer-mirror/slicer-mirror.js"
 _IDC_WORKER_SRC = "render/vendor/idc_tools/idc-worker.js"
 _IDC_WORKER_DEST = "render/demos/ira/idc-worker.js"
 
 SLICERLIVE_IRA_FILES = ("ira.html", "ira.js", "idc-worker.js")
-HUB_MIRROR_FILES = ("hub-mirror.html", "hub-mirror.js")
+SLICER_MIRROR_FILES = ("slicer-mirror.html", "slicer-mirror.js")
 
 EXCLUDED_DIR_NAMES = {
     ".git",
@@ -165,17 +165,17 @@ def sync_slicerlive_ira(src: Path, dest: Path) -> int:
     return count
 
 
-def sync_hub_mirror(src: Path, dest: Path) -> int:
-    html = src / "hub-mirror.html"
-    js = src / "hub-mirror.js"
+def sync_slicer_mirror(src: Path, dest: Path) -> int:
+    html = src / "slicer-mirror.html"
+    js = src / "slicer-mirror.js"
     if not html.is_file() or not js.is_file():
-        raise FileNotFoundError(f"hub-mirror incomplete: {src}")
+        raise FileNotFoundError(f"slicer-mirror incomplete: {src}")
     if dest.exists():
         shutil.rmtree(dest)
     dest.mkdir(parents=True, exist_ok=True)
     shutil.copy2(html, dest / "index.html")
     count = 1
-    for name in HUB_MIRROR_FILES:
+    for name in SLICER_MIRROR_FILES:
         src_file = src / name
         if src_file.is_file():
             shutil.copy2(src_file, dest / name)
@@ -257,11 +257,11 @@ def dist_for_key(search_from: Path, key: str, override: Path | None) -> Path:
         if root is None:
             raise FileNotFoundError("Could not find SlicerLive")
         return (root / Path(*DIST_PARTS_UNDER_REPO["slicerlive"])).resolve()
-    if key == "hubmirror":
+    if key == "slicermirror":
         root = find_slicerlive_root(search_from)
         if root is None:
-            raise FileNotFoundError("Could not find SlicerLive hub-mirror")
-        return (root / Path(*DIST_PARTS_UNDER_REPO["hubmirror"])).resolve()
+            raise FileNotFoundError("Could not find SlicerLive slicer-mirror")
+        return (root / Path(*DIST_PARTS_UNDER_REPO["slicermirror"])).resolve()
     if key == "ohif":
         root = find_viewers_root(search_from)
         if root is None:
@@ -294,7 +294,7 @@ def build_slicerlive(root: Path) -> None:
     print(f"Building SlicerLive demos ({root}) …")
     builds = (
         (_IRA_ENTRY, _IRA_OUT, "IRA"),
-        (_HUB_MIRROR_ENTRY, _HUB_MIRROR_OUT, "hub-mirror"),
+        (_SLICER_MIRROR_ENTRY, _SLICER_MIRROR_OUT, "slicer-mirror"),
     )
     for entry, outfile, label in builds:
         entry_path = root / entry
@@ -312,7 +312,7 @@ def build_slicerlive(root: Path) -> None:
             subprocess.run(cmd, cwd=root, check=True)
         except FileNotFoundError as err:
             raise RuntimeError(
-                "deno not found; install Deno to build IRA / hub-mirror"
+                "deno not found; install Deno to build IRA / slicer-mirror"
             ) from err
         out_path = root / outfile
         if not out_path.is_file():
@@ -328,7 +328,7 @@ def build_slicerlive(root: Path) -> None:
         worker_dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(worker_src, worker_dest)
         print(f"Copied idc-worker.js -> {_IDC_WORKER_DEST}")
-    print("Built SlicerLive IRA + hub-mirror")
+    print("Built SlicerLive IRA + slicer-mirror")
 
 
 def build_ohif(viewers: Path) -> None:
@@ -444,8 +444,8 @@ def run_sync(
             if slicerlive_root
             else None
         ),
-        "hubmirror": (
-            (slicerlive_root / Path(*DIST_PARTS_UNDER_REPO["hubmirror"]))
+        "slicermirror": (
+            (slicerlive_root / Path(*DIST_PARTS_UNDER_REPO["slicermirror"]))
             if slicerlive_root
             else None
         ),
@@ -470,8 +470,8 @@ def run_sync(
             src = dist_for_key(search_from, key, overrides.get(key))
             if key == "slicerlive":
                 count = sync_slicerlive_ira(src, dest)
-            elif key == "hubmirror":
-                count = sync_hub_mirror(src, dest)
+            elif key == "slicermirror":
+                count = sync_slicer_mirror(src, dest)
             else:
                 count = sync_dist_tree(
                     src, dest, ohif_mount_check=(key == "ohif")

@@ -199,7 +199,7 @@ Slicer WebSub is distributed under the [MIT License](LICENSE.txt).
 
 **Slim** — interoperable slide microscopy viewer from the [Imaging Data Commons](https://github.com/ImagingDataCommons/slim) (National Cancer Institute).
 
-**SlicerLive** — experimental WebGPU live 3D Slicer scenes in the browser from [SlicerLive](https://github.com/pieper/SlicerLive/); used for IRA / hub-mirror demos served from the hub.
+**SlicerLive** — experimental WebGPU live 3D Slicer scenes in the browser from [SlicerLive](https://github.com/pieper/SlicerLive/); used for IRA / slicer-mirror demos served from the hub.
 
 ## Standards and trademarks
 

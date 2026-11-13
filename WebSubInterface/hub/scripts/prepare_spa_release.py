@@ -4,7 +4,7 @@
 Tracked alternative to gitignored make_zip.py for CI. Syncs into hub/:
 
   worklist-client, reporting-client, classroom-client  <- SlicerWebSub-js
-  slicerlive, hub-mirror                               <- SlicerLive demos
+  slicerlive, slicer-mirror                               <- SlicerLive demos
   OHIF-client                                          <- Viewers (optional)
   slim                                                 <- slim (optional)
 
@@ -37,13 +37,13 @@ JS_DEST = {
 _ESBUILD_DENO = ("run", "-A", "npm:esbuild@0.21.5")
 _IRA_ENTRY = "render/demos/ira/ira-browser.ts"
 _IRA_OUT = "render/demos/ira/ira.js"
-_HUB_MIRROR_ENTRY = "render/demos/hub-mirror/hub-mirror-browser.ts"
-_HUB_MIRROR_OUT = "render/demos/hub-mirror/hub-mirror.js"
+_SLICER_MIRROR_ENTRY = "render/demos/slicer-mirror/slicer-mirror-browser.ts"
+_SLICER_MIRROR_OUT = "render/demos/slicer-mirror/slicer-mirror.js"
 _IDC_WORKER_SRC = "render/vendor/idc_tools/idc-worker.js"
 _IDC_WORKER_DEST = "render/demos/ira/idc-worker.js"
 
 SLICERLIVE_IRA_FILES = ("ira.html", "ira.js", "idc-worker.js")
-HUB_MIRROR_FILES = ("hub-mirror.html", "hub-mirror.js")
+SLICER_MIRROR_FILES = ("slicer-mirror.html", "slicer-mirror.js")
 
 EXCLUDED_DIR_NAMES = {".git", "__pycache__", "node_modules"}
 EXCLUDED_SUFFIXES = {".pyc", ".pyo", ".ts", ".map"}
@@ -113,17 +113,17 @@ def sync_slicerlive_ira(src: Path, dest: Path) -> int:
     return count
 
 
-def sync_hub_mirror(src: Path, dest: Path) -> int:
-    html = src / "hub-mirror.html"
-    js = src / "hub-mirror.js"
+def sync_slicer_mirror(src: Path, dest: Path) -> int:
+    html = src / "slicer-mirror.html"
+    js = src / "slicer-mirror.js"
     if not html.is_file() or not js.is_file():
-        raise FileNotFoundError(f"hub-mirror incomplete: {src}")
+        raise FileNotFoundError(f"slicer-mirror incomplete: {src}")
     if dest.exists():
         shutil.rmtree(dest)
     dest.mkdir(parents=True, exist_ok=True)
     shutil.copy2(html, dest / "index.html")
     count = 1
-    for name in HUB_MIRROR_FILES:
+    for name in SLICER_MIRROR_FILES:
         src_file = src / name
         if src_file.is_file():
             shutil.copy2(src_file, dest / name)
@@ -141,7 +141,7 @@ def build_slicerlive(root: Path) -> None:
     print(f"Building SlicerLive demos ({root}) …")
     builds = (
         (_IRA_ENTRY, _IRA_OUT, "IRA"),
-        (_HUB_MIRROR_ENTRY, _HUB_MIRROR_OUT, "hub-mirror"),
+        (_SLICER_MIRROR_ENTRY, _SLICER_MIRROR_OUT, "slicer-mirror"),
     )
     for entry, outfile, label in builds:
         entry_path = root / entry
@@ -237,9 +237,9 @@ def main() -> int:
         n = sync_slicerlive_ira(ira_src, hub / "slicerlive")
         print(f"Synced IRA -> slicerlive/ ({n} files)")
 
-        mirror_src = live_root / "render" / "demos" / "hub-mirror"
-        n = sync_hub_mirror(mirror_src, hub / "hub-mirror")
-        print(f"Synced hub-mirror -> hub-mirror/ ({n} files)")
+        mirror_src = live_root / "render" / "demos" / "slicer-mirror"
+        n = sync_slicer_mirror(mirror_src, hub / "slicer-mirror")
+        print(f"Synced slicer-mirror -> slicer-mirror/ ({n} files)")
 
         if args.include_ohif:
             viewers = Path(args.viewers_root).resolve()

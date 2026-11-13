@@ -21,7 +21,7 @@ SPA_CLIENTS = [
     ("reporting-client", "reporting-client"),
     ("classroom-client", "classroom-client"),
     ("slicerlive", "slicerlive"),
-    ("hub-mirror", "hub-mirror"),
+    ("slicer-mirror", "slicer-mirror"),
     ("slim", "slim"),
     ("ohif", "OHIF-client"),
 ]

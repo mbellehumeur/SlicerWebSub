@@ -25,7 +25,7 @@ DEFAULT_CHECKED_WHEN_MISSING = frozenset(
         "reporting-client",
         "classroom-client",
         "slicerlive",
-        "hub-mirror",
+        "slicer-mirror",
     }
 )
 
@@ -37,6 +37,10 @@ class SpaCatalogEntry:
     folder: str
     label: str
     asset: str
+    # Approximate spa-*.zip download size (update when packing spa-clients).
+    size_bytes: int
+    # One-line description for the Qt Hub SPA help text.
+    summary: str
 
     @property
     def url(self) -> str:
@@ -44,14 +48,57 @@ class SpaCatalogEntry:
 
 
 # Aligned with hub/Lib/static_spa.py SPA_CLIENTS (no marketing website/).
+# size_bytes from local ZIP_DEFLATED packs of hub/<folder>/ (approx download cost).
 SPA_DOWNLOAD_CATALOG: Tuple[SpaCatalogEntry, ...] = (
-    SpaCatalogEntry("worklist-client", "Worklist", "spa-worklist-client.zip"),
-    SpaCatalogEntry("reporting-client", "Reporting", "spa-reporting-client.zip"),
-    SpaCatalogEntry("classroom-client", "Classroom", "spa-classroom-client.zip"),
-    SpaCatalogEntry("slicerlive", "SlicerLive", "spa-slicerlive.zip"),
-    SpaCatalogEntry("hub-mirror", "Hub mirror", "spa-hub-mirror.zip"),
-    SpaCatalogEntry("slim", "Slim", "spa-slim.zip"),
-    SpaCatalogEntry("OHIF-client", "OHIF", "spa-OHIF-client.zip"),
+    SpaCatalogEntry(
+        "worklist-client",
+        "Worklist",
+        "spa-worklist-client.zip",
+        2_085_176,
+        "Conference worklist and viewer launcher for hub sessions.",
+    ),
+    SpaCatalogEntry(
+        "reporting-client",
+        "Reporting",
+        "spa-reporting-client.zip",
+        99_083,
+        "Structured reporting client for hub topics.",
+    ),
+    SpaCatalogEntry(
+        "classroom-client",
+        "Classroom",
+        "spa-classroom-client.zip",
+        1_040_309,
+        "Teaching / classroom client for shared hub sessions.",
+    ),
+    SpaCatalogEntry(
+        "slicerlive",
+        "SlicerLive",
+        "spa-slicerlive.zip",
+        302_434,
+        "SlicerLive IRA — WebGPU integrated reporting / live scene demo.",
+    ),
+    SpaCatalogEntry(
+        "slicer-mirror",
+        "Slicer mirror",
+        "spa-slicer-mirror.zip",
+        125_055,
+        "Four-Up LiveScene stream from 3D Slicer Image Display.",
+    ),
+    SpaCatalogEntry(
+        "slim",
+        "Slim",
+        "spa-slim.zip",
+        2_676_322,
+        "Slim DICOM viewer SPA.",
+    ),
+    SpaCatalogEntry(
+        "OHIF-client",
+        "OHIF",
+        "spa-OHIF-client.zip",
+        32_647_712,
+        "OHIF v3 medical imaging viewer (largest download).",
+    ),
 )
 
 
@@ -69,6 +116,37 @@ def default_checked(folder: str, installed: bool) -> bool:
     if installed:
         return False
     return folder in DEFAULT_CHECKED_WHEN_MISSING
+
+
+def format_spa_size(nbytes: int) -> str:
+    """Human-readable size for SPA zip labels (B / KB / MB / GB)."""
+    n = max(0, int(nbytes))
+    if n < 1024:
+        return f"{n} B"
+    if n < 1024 * 1024:
+        return f"{n / 1024:.0f} KB"
+    if n < 1024 * 1024 * 1024:
+        return f"{n / (1024 * 1024):.1f} MB"
+    return f"{n / (1024 * 1024 * 1024):.1f} GB"
+
+
+def spa_checkbox_label(entry: SpaCatalogEntry) -> str:
+    """Checkbox text: ``Label (1.2 MB)`` from the static catalog size."""
+    if entry.size_bytes <= 0:
+        return entry.label
+    return f"{entry.label} ({format_spa_size(entry.size_bytes)})"
+
+
+def spa_download_help_text() -> str:
+    """Multi-line help under the Qt Download SPAs button."""
+    lines = [
+        "Downloads the selected browser clients from the spa-clients GitHub "
+        "release into this hub folder. Restart the hub after install to serve them.",
+        "",
+    ]
+    for entry in SPA_DOWNLOAD_CATALOG:
+        lines.append(f"• {entry.label}: {entry.summary}")
+    return "\n".join(lines)
 
 
 def _download_url(url: str, dest: Path, *, timeout: float = 120.0) -> None:

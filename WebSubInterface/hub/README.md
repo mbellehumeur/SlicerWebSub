@@ -34,7 +34,7 @@ Slicer Extension Manager package. They are optional folders under `hub/`
 SPA trees stay out of git. Publish or refresh the `spa-clients` release:
 
 1. GitHub Actions → **Publish SPA clients** (`workflow_dispatch`).
-   - Always builds worklist / reporting / classroom / slicerlive / hub-mirror.
+   - Always builds worklist / reporting / classroom / slicerlive / slicer-mirror.
    - Optional inputs: **include_ohif**, **include_slim**.
 2. Or locally (sibling clones already synced under `hub/`):
 

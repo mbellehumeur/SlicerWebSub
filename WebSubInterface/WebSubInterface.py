@@ -72,7 +72,7 @@ class WebSubInterface(ScriptedLoadableModule):
             <b>Acknowledgements</b><br>
             <b>SlicerLive</b> &mdash; experimental WebGPU live 3D Slicer scenes in the browser from
             <a href="https://github.com/pieper/SlicerLive/">SlicerLive</a>;
-            used for IRA / hub-mirror demos served from the hub.<br><br>
+            used for IRA / slicer-mirror demos served from the hub.<br><br>
             <b>OHIF</b> &mdash; open-source zero-footprint viewer from the
             <a href="https://ohif.org/">Open Health Imaging Foundation</a>.<br><br>
             <b>3D Slicer</b> &mdash; open-source platform for medical image computing from the

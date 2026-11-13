@@ -25,6 +25,8 @@ from .spa_download import (
     default_checked,
     download_and_extract,
     is_installed,
+    spa_checkbox_label,
+    spa_download_help_text,
 )
 
 
@@ -188,9 +190,9 @@ class HubServerWidget:
         spa_grid_layout.setHorizontalSpacing(12)
         spa_grid_layout.setVerticalSpacing(2)
         self._spa_checkboxes = {}
-        columns = 3
+        columns = 4
         for index, entry in enumerate(SPA_DOWNLOAD_CATALOG):
-            checkbox = qt.QCheckBox(entry.label)
+            checkbox = qt.QCheckBox(spa_checkbox_label(entry))
             checkbox.setProperty("spaFolder", entry.folder)
             self._spa_checkboxes[entry.folder] = checkbox
             spa_grid_layout.addWidget(checkbox, index // columns, index % columns)
@@ -203,6 +205,10 @@ class HubServerWidget:
             )
         )
         spa_layout.addWidget(self.downloadSpasButton)
+        spa_help = qt.QLabel(_(spa_download_help_text()))
+        spa_help.setWordWrap(True)
+        spa_help.setStyleSheet("color: palette(mid); font-size: 11px;")
+        spa_layout.addWidget(spa_help)
         layout.addRow(_("SPAs:"), spa_panel)
         self._refresh_spa_checkboxes()
 
@@ -222,6 +228,7 @@ class HubServerWidget:
             checkbox = self._spa_checkboxes.get(entry.folder)
             if not checkbox:
                 continue
+            checkbox.setText(spa_checkbox_label(entry))
             installed = is_installed(root, entry.folder)
             checkbox.setChecked(default_checked(entry.folder, installed))
             if installed:
