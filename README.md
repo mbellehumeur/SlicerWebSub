@@ -4,7 +4,7 @@
   <img src="WebSubInterface/docs/images/banner.jpg" alt="Slicer WebSub Banner" width="100%">
 </p>
 
-The Slicer WebSub extension is a [WebSub](https://www.w3.org/TR/websub/)  messaging infrastructure that connects users of medical image displays, worklists, reporting tools, conferencing tools, remote inference models and AI Orchestrators.
+The Slicer WebSub extension is a [WebSub](https://www.w3.org/TR/websub/)  messaging infrastructure that connects users of medical image displays, worklists, reporting tools, conferencing tools, remote inference models and AI orchestrators.
 
 ## Overview
 

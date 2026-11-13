@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 LOGGER = logging.getLogger("WebSubInterface.ImageDisplay")
 
@@ -19,23 +19,28 @@ def _instance_tag(db: Any, instance: str, tag: str) -> str:
     return str(value or "").strip()
 
 
-def _first_instance_for_study(db: Any, study: str) -> str:
+def _first_instance_uid(db: Any, series: Any) -> str:
+    """Return the first instance UID for a series (prefer limited DB query)."""
     try:
-        series_list = db.seriesForStudy(study) or []
-    except Exception:
-        return ""
-    for series in series_list:
+        instances = db.instancesForSeries(series, 1) or []
+    except TypeError:
         try:
             instances = db.instancesForSeries(series) or []
         except Exception:
-            continue
-        if instances:
-            return str(instances[0])
-    return ""
+            return ""
+    except Exception:
+        return ""
+    if not instances:
+        return ""
+    return str(instances[0] or "").strip()
 
 
 def list_local_dicom_worklist_studies() -> List[Dict[str, Any]]:
-    """Return launchable study rows from ``slicer.dicomDatabase`` (WebServer QIDO-style)."""
+    """Return launchable study rows from ``slicer.dicomDatabase`` (WebServer QIDO-style).
+
+    Single ``seriesForStudy`` pass per study (like WebServer ``handleStudies``),
+    using ``instanceValue`` / ``instancesForSeries(..., 1)`` — no ``pydicom.dcmread``.
+    """
     try:
         import slicer
     except Exception:
@@ -64,30 +69,35 @@ def list_local_dicom_worklist_studies() -> List[Dict[str, Any]]:
             if not study_key or study_key in seen:
                 continue
 
-            instance = _first_instance_for_study(db, study_key)
-            if not instance:
+            try:
+                series_list = db.seriesForStudy(study_key) or []
+            except Exception:
                 continue
 
-            study_uid = _instance_tag(db, instance, "0020,000D") or study_key
+            representative: Optional[str] = None
+            modalities: List[str] = []
+            for series in series_list:
+                instance = _first_instance_uid(db, series)
+                if not instance:
+                    continue
+                if representative is None:
+                    representative = instance
+                modality = _instance_tag(db, instance, "0008,0060")
+                if modality and modality not in modalities:
+                    modalities.append(modality)
+
+            if not representative:
+                continue
+
+            study_uid = _instance_tag(db, representative, "0020,000D") or study_key
             if study_uid in seen:
                 continue
             seen.add(study_uid)
             seen.add(study_key)
 
-            patient_name = _instance_tag(db, instance, "0010,0010") or "Unknown"
-            study_desc = _instance_tag(db, instance, "0008,1030")
-            study_date = _instance_tag(db, instance, "0008,0020")
-            modalities: List[str] = []
-            try:
-                for series in db.seriesForStudy(study_key) or []:
-                    series_instances = db.instancesForSeries(series) or []
-                    if not series_instances:
-                        continue
-                    modality = _instance_tag(db, series_instances[0], "0008,0060")
-                    if modality and modality not in modalities:
-                        modalities.append(modality)
-            except Exception:
-                pass
+            patient_name = _instance_tag(db, representative, "0010,0010") or "Unknown"
+            study_desc = _instance_tag(db, representative, "0008,1030")
+            study_date = _instance_tag(db, representative, "0008,0020")
             if not modalities:
                 modalities = ["OT"]
 

@@ -68,13 +68,6 @@ class ConferenceDialog(qt.QDialog):
         root.setContentsMargins(18, 16, 18, 16)
         root.setSpacing(8)
 
-        title_label = qt.QLabel(_("Conferencing"))
-        font = title_label.font
-        font.setBold(True)
-        font.setPointSize(font.pointSize() + 2)
-        title_label.setFont(font)
-        root.addWidget(title_label)
-
         self._status_label = qt.QLabel("")
         self._status_label.setWordWrap(True)
         self._status_label.hide()
@@ -122,19 +115,41 @@ class ConferenceDialog(qt.QDialog):
         root.addWidget(self._create_section)
 
         self._manage_section = qt.QWidget()
+        self._manage_section.setSizePolicy(
+            qt.QSizePolicy.Preferred, qt.QSizePolicy.Maximum
+        )
         manage_layout = qt.QVBoxLayout(self._manage_section)
         manage_layout.setContentsMargins(0, 0, 0, 0)
-        manage_layout.setSpacing(8)
+        manage_layout.setSpacing(6)
 
-        manage_heading = qt.QLabel(_("Manage conference"))
-        manage_heading.setStyleSheet("font-weight: 600; font-size: 12px;")
-        manage_layout.addWidget(manage_heading)
+        manage_form = qt.QFormLayout()
+        manage_form.setContentsMargins(0, 0, 0, 0)
+        manage_form.setHorizontalSpacing(8)
+        manage_form.setVerticalSpacing(4)
+        manage_form.setFieldGrowthPolicy(qt.QFormLayout.AllNonFixedFieldsGrow)
 
-        self._manage_info = qt.QLabel("")
-        self._manage_info.setWordWrap(True)
-        self._manage_info.setTextFormat(qt.Qt.RichText)
-        self._manage_info.setStyleSheet("font-size: 12px;")
-        manage_layout.addWidget(self._manage_info)
+        self._manage_title_value = qt.QLabel("")
+        self._manage_title_value.setWordWrap(True)
+        self._manage_title_value.setSizePolicy(
+            qt.QSizePolicy.Preferred, qt.QSizePolicy.Maximum
+        )
+        manage_form.addRow(_("Title:"), self._manage_title_value)
+
+        self._manage_host_value = qt.QLabel("")
+        self._manage_host_value.setWordWrap(True)
+        self._manage_host_value.setSizePolicy(
+            qt.QSizePolicy.Preferred, qt.QSizePolicy.Maximum
+        )
+        manage_form.addRow(_("Host topic:"), self._manage_host_value)
+
+        self._manage_users_value = qt.QLabel("")
+        self._manage_users_value.setWordWrap(True)
+        self._manage_users_value.setSizePolicy(
+            qt.QSizePolicy.Preferred, qt.QSizePolicy.Maximum
+        )
+        manage_form.addRow(_("Users:"), self._manage_users_value)
+
+        manage_layout.addLayout(manage_form)
 
         self._exit_button = qt.QPushButton(_("Leave conference"))
         self._exit_button.clicked.connect(self._on_exit)
@@ -168,6 +183,13 @@ class ConferenceDialog(qt.QDialog):
 
     def _on_close(self, *_args) -> None:
         self.close()
+
+    def _fit_to_content(self) -> None:
+        """Shrink or grow the dialog to the currently visible section."""
+        layout = self.layout()
+        if layout is not None:
+            layout.activate()
+        self.adjustSize()
 
     @staticmethod
     def _qt_value(obj: Any, name: str) -> Any:
@@ -323,17 +345,16 @@ class ConferenceDialog(qt.QDialog):
         title = str(conference.get("title") or "N/A")
         users = self._conference_users_text(conference)
 
-        self._manage_info.text = (
-            f"<b>{_('Title:')}</b> {title}<br>"
-            f"<b>{_('Host topic:')}</b> {host}<br>"
-            f"<b>{_('Users:')}</b> {users}"
-        )
+        self._manage_title_value.text = title
+        self._manage_host_value.text = host
+        self._manage_users_value.text = users
 
         is_host = is_cast_conference_host(self._session_topic, conference)
         self._exit_button.text = (
             _("End conference") if is_host else _("Leave conference")
         )
         self._notify_active_changed(True)
+        self._fit_to_content()
 
     def _show_create_mode(self) -> None:
         self._manage_section.hide()
@@ -361,6 +382,7 @@ class ConferenceDialog(qt.QDialog):
                 self._topics_list.addItem(item)
 
         self._create_button.enabled = self._connected and not self._busy
+        self._fit_to_content()
 
     def _selected_topics(self) -> List[str]:
         selected: List[str] = []
@@ -403,7 +425,7 @@ class ConferenceDialog(qt.QDialog):
             self._clear_status()
             slicer.util.warningDisplay(
                 _(
-                    "Be mindful if your DICOM database contains patient images or PHI."
+                    "This conference can share your Slicer DICOMDB. Be careful that your system does not have patient images or other PHI."
                 ),
                 windowTitle=_("Conference created"),
                 parent=self,
