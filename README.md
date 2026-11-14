@@ -100,7 +100,17 @@ The hub is a stateless routing appliance that distributes messages and handles d
   <img src="WebSubInterface/docs/images/hub-ui.png" alt="Hub UI" width="80%">
 </p>
 
-It can be used without the Slicer extension by running the `hub.py` script.
+From this panel, you can download the clients that you need from GitHub release into the local hub folder. 
+
+- **Worklist** — Conference worklist and viewer launcher.
+- **Reporting** — WIP DICOM SR client.
+- **Classroom** — Teaching / classroom client for shared sessions.
+- **SlicerLive** — SlicerLive with websub client.
+- **Slicer mirror** — Relay of the LiveScene stream through the hub.
+- **Slim** — Slim slide viewer with websub client.
+- **OHIF** — OHIF with websub client.
+
+Restart the hub after install to serve them.
 
 ### Image Display Client
 
@@ -119,7 +129,7 @@ Here is an example of its use:
   </a>
 </p>
 
-Inference / evidence-creator workers and secure deployment notes: see [SlicerWebSub-workers](https://github.com/mbellehumeur/SlicerWebSub-workers).
+For inference / evidence-creator workers see [SlicerWebSub-workers](https://github.com/mbellehumeur/SlicerWebSub-workers).
 
 ## Installation
 
