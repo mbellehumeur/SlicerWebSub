@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Slicer WebSub</title>
+    <title>3D Slicer WebSub Hub</title>
     <link rel="icon" id="app-favicon" type="image/png" href="/static/images/3DSlicer-DesktopIcon.png">
     <style>
         :root {
@@ -270,6 +270,7 @@
         h1.page-header {
             flex-wrap: wrap;
             justify-content: space-between;
+            align-items: center;
             gap: 12px;
             padding-bottom: 4px;
         }
@@ -534,11 +535,9 @@
             display: flex;
             gap: 8px;
             margin: 0;
-            flex-wrap: nowrap;
+            flex: 1 0 100%;
+            flex-wrap: wrap;
             align-items: center;
-        }
-        .header-actions .metrics-row {
-            margin-right: 4px;
         }
         .metric-card {
             background: var(--bg-muted);
@@ -1027,10 +1026,10 @@
             window.addEventListener('blur', deactivateShiftPolka);
             const isSlicer = theme === '3dslicer';
             const HUB_PRODUCT_NAME = isSlicer
-                ? '3D Slicer WebSub'
+                ? '3D Slicer WebSub Hub'
                 : 'Server Hub API';
             document.title = isSlicer
-                ? '3D Slicer WebSub'
+                ? '3D Slicer WebSub Hub'
                 : 'VolView Server Hub API';
             const favicon = document.getElementById('app-favicon');
             if (favicon) {
@@ -1102,41 +1101,9 @@
             <div class="header-brand">
                 <img class="header-logo-volview" src="/static/images/hub-radio-favicon.svg" alt="Hub">
                 <img class="header-logo-slicer" src="/static/images/3DSlicer-DesktopIcon.png" alt="3D Slicer">
-                <span class="header-title">3D Slicer WebSub</span>
+                <span class="header-title">3D Slicer WebSub Hub</span>
             </div>
             <div class="header-actions">
-                <div class="metrics-row">
-                    <div class="metric-card">
-                        <div class="metric-card-body">
-                            <div class="metric-card-text">
-                                <h3>Memory</h3>
-                                <span class="metric-value" id="metricMemoryValue">—</span>
-                                <div class="metric-sub" id="metricMemorySub"></div>
-                            </div>
-                            <canvas id="metricMemoryChart" width="160" height="24" aria-hidden="true"></canvas>
-                        </div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-card-body">
-                            <div class="metric-card-text">
-                                <h3>CPU</h3>
-                                <span class="metric-value" id="metricCpuValue">—</span>
-                            </div>
-                            <canvas id="metricCpuChart" width="160" height="24" aria-hidden="true"></canvas>
-                        </div>
-                    </div>
-                    <div class="metric-card" id="metricNetworkCard"
-                         title="Hub network connections (TCP and WebSocket)">
-                        <div class="metric-card-body">
-                            <div class="metric-card-text">
-                                <h3>Network</h3>
-                                <span class="metric-value" id="metricNetworkValue">—</span>
-                                <div class="metric-sub" id="metricNetworkSub"></div>
-                            </div>
-                            <canvas id="metricNetworkChart" width="160" height="24" aria-hidden="true"></canvas>
-                        </div>
-                    </div>
-                </div>
                 <span id="singleUserBadge" class="single-user-badge" style="display:none;" title="Token endpoint returns SINGLE-USER in this mode">Single-user mode</span>
                 <div class="hub-settings">
                     <div class="hub-settings-header">
@@ -1160,6 +1127,60 @@
                         </div>
                         <button type="button" id="hubAboutBtn" class="hub-settings-launch"
                                 onclick="showAboutHub()">About</button>
+                    </div>
+                </div>
+            </div>
+            <div class="metrics-row">
+                <div class="metric-card">
+                    <div class="metric-card-body">
+                        <div class="metric-card-text">
+                            <h3>Memory</h3>
+                            <span class="metric-value" id="metricMemoryValue">—</span>
+                            <div class="metric-sub" id="metricMemorySub"></div>
+                        </div>
+                        <canvas id="metricMemoryChart" width="160" height="24" aria-hidden="true"></canvas>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-card-body">
+                        <div class="metric-card-text">
+                            <h3>CPU</h3>
+                            <span class="metric-value" id="metricCpuValue">—</span>
+                        </div>
+                        <canvas id="metricCpuChart" width="160" height="24" aria-hidden="true"></canvas>
+                    </div>
+                </div>
+                <div class="metric-card" id="metricNetworkCard"
+                     title="Hub network connections (TCP and WebSocket)">
+                    <div class="metric-card-body">
+                        <div class="metric-card-text">
+                            <h3>Network</h3>
+                            <span class="metric-value" id="metricNetworkValue">—</span>
+                            <div class="metric-sub" id="metricNetworkSub"></div>
+                        </div>
+                        <canvas id="metricNetworkChart" width="160" height="24" aria-hidden="true"></canvas>
+                    </div>
+                </div>
+                <div class="metric-card" id="metricGbInCard"
+                     title="Host network bytes received since Hub start">
+                    <div class="metric-card-body">
+                        <div class="metric-card-text">
+                            <h3>GB In</h3>
+                            <span class="metric-value" id="metricGbInValue">—</span>
+                            <div class="metric-sub" id="metricGbInSub"></div>
+                        </div>
+                        <canvas id="metricGbInChart" width="160" height="24" aria-hidden="true"></canvas>
+                    </div>
+                </div>
+                <div class="metric-card" id="metricGbOutCard"
+                     title="Host network bytes sent since Hub start">
+                    <div class="metric-card-body">
+                        <div class="metric-card-text">
+                            <h3>GB Out</h3>
+                            <span class="metric-value" id="metricGbOutValue">—</span>
+                            <div class="metric-sub" id="metricGbOutSub"></div>
+                        </div>
+                        <canvas id="metricGbOutChart" width="160" height="24" aria-hidden="true"></canvas>
                     </div>
                 </div>
             </div>
@@ -1234,6 +1255,8 @@
             memory: [],
             cpu: [],
             network: [],
+            gbIn: [],
+            gbOut: [],
         };
         let metricsPollTimer = null;
         let adminTokenPrompted = false;
@@ -1483,6 +1506,25 @@
                 document.getElementById('metricNetworkChart'),
                 metricsHistory.network
             );
+            drawSparkline(
+                document.getElementById('metricGbInChart'),
+                metricsHistory.gbIn
+            );
+            drawSparkline(
+                document.getElementById('metricGbOutChart'),
+                metricsHistory.gbOut
+            );
+        }
+
+        function formatMetricGb(value) {
+            const n = Number(value);
+            if (!Number.isFinite(n)) {
+                return '—';
+            }
+            if (n < 0.01) {
+                return `${(n * 1024).toFixed(1)} MB`;
+            }
+            return `${n.toFixed(3)} GB`;
         }
 
         function formatHubUptime(seconds) {
@@ -1602,6 +1644,26 @@
                         card.title = tip;
                     }
                 }
+                const gbIn = Number(network.gb_in);
+                const gbOut = Number(network.gb_out);
+                if (Number.isFinite(gbIn)) {
+                    pushMetricSample('gbIn', gbIn);
+                    document.getElementById('metricGbInValue').textContent =
+                        formatMetricGb(gbIn);
+                    const sub = document.getElementById('metricGbInSub');
+                    if (sub) {
+                        sub.textContent = 'since Hub start';
+                    }
+                }
+                if (Number.isFinite(gbOut)) {
+                    pushMetricSample('gbOut', gbOut);
+                    document.getElementById('metricGbOutValue').textContent =
+                        formatMetricGb(gbOut);
+                    const sub = document.getElementById('metricGbOutSub');
+                    if (sub) {
+                        sub.textContent = 'since Hub start';
+                    }
+                }
                 redrawAllMetricCharts();
             } catch (err) {
                 console.warn('Metrics poll failed:', err);
@@ -1609,9 +1671,19 @@
                 document.getElementById('metricMemoryValue').textContent = '—';
                 document.getElementById('metricCpuValue').textContent = '—';
                 document.getElementById('metricNetworkValue').textContent = '—';
+                document.getElementById('metricGbInValue').textContent = '—';
+                document.getElementById('metricGbOutValue').textContent = '—';
                 const networkSub = document.getElementById('metricNetworkSub');
                 if (networkSub) {
                     networkSub.textContent = '';
+                }
+                const gbInSub = document.getElementById('metricGbInSub');
+                if (gbInSub) {
+                    gbInSub.textContent = '';
+                }
+                const gbOutSub = document.getElementById('metricGbOutSub');
+                if (gbOutSub) {
+                    gbOutSub.textContent = '';
                 }
             }
         }

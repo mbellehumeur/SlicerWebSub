@@ -5,12 +5,14 @@ from __future__ import annotations
 import os
 import time
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
 _process: Optional[Any] = None
 # Hub worker process lifetime (set when this module is first imported).
 _HUB_STARTED_AT = datetime.now(timezone.utc)
 _HUB_STARTED_MONO = time.monotonic()
+# Host net_io baseline at first metrics sample (GB in/out since hub start).
+_NET_IO_BASE: Optional[Tuple[int, int]] = None
 
 
 def _hub_process() -> Any:
@@ -21,6 +23,25 @@ def _hub_process() -> Any:
         _process = psutil.Process(os.getpid())
         _process.cpu_percent(interval=None)
     return _process
+
+
+def _network_bytes_since_start() -> Tuple[Optional[int], Optional[int]]:
+    """Host bytes received/sent since hub metrics baseline (first sample)."""
+    global _NET_IO_BASE
+    try:
+        import psutil
+
+        counters = psutil.net_io_counters()
+        if counters is None:
+            return None, None
+        recv = int(counters.bytes_recv)
+        sent = int(counters.bytes_sent)
+        if _NET_IO_BASE is None:
+            _NET_IO_BASE = (recv, sent)
+        base_recv, base_sent = _NET_IO_BASE
+        return max(0, recv - base_recv), max(0, sent - base_sent)
+    except (AttributeError, OSError, PermissionError, TypeError, ValueError):
+        return None, None
 
 
 def collect_hub_metrics(hub: Any, payload_store: Any) -> Dict[str, Any]:
@@ -60,6 +81,7 @@ def collect_hub_metrics(hub: Any, payload_store: Any) -> Dict[str, Any]:
     network_chart_value = (
         tcp_connections if tcp_connections is not None else websocket_total
     )
+    bytes_recv, bytes_sent = _network_bytes_since_start()
     network: Dict[str, Any] = {
         "chart_value": network_chart_value,
         "websocket_total": websocket_total,
@@ -68,6 +90,11 @@ def collect_hub_metrics(hub: Any, payload_store: Any) -> Dict[str, Any]:
     }
     if tcp_connections is not None:
         network["tcp_connections"] = tcp_connections
+    if bytes_recv is not None and bytes_sent is not None:
+        network["bytes_recv"] = bytes_recv
+        network["bytes_sent"] = bytes_sent
+        network["gb_in"] = round(bytes_recv / (1024**3), 3)
+        network["gb_out"] = round(bytes_sent / (1024**3), 3)
 
     return {
         "ts": datetime.now(timezone.utc).isoformat(),
