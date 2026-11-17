@@ -48,7 +48,8 @@ class WebSubInterface(ScriptedLoadableModule):
             (add OHIF or others if you need those viewers), then click <b>Download SPAs</b>
             — clients are not shipped in the extension; this fetches them from GitHub
             into the local hub folder. Restart the hub after download if it was already running.<br>
-            2. Set <b>Port</b> (default 2018), click <b>Start</b>, then
+            2. Set <b>Port</b> (default 2018), click <b>Start</b> (listens on
+            <code>127.0.0.1</code> only), then
             <b>Open Hub Portal</b> if you want the admin UI.<br>
             3. In <b>Image Display Client</b>, select <code>SLICER-HUB</code>.<br>
             4. Same as cloud: <b>Open worklist</b> → match conference-icon user in <b>User</b>

@@ -8,13 +8,16 @@ set(MODULE_PYTHON_SCRIPTS
   Lib/ConferenceDialog.py
   Lib/hub_presets.py
   Lib/conference.py
+  Lib/python_deps.py
   Lib/repo_paths.py
+  Lib/spa_download.py
   Lib/__init__.py
   )
 
 set(MODULE_PYTHON_RESOURCES
   Resources/Icons/WebSubInterface.svg
   Resources/Icons/WebSubInterfaceLogo.png
+  Resources/requirements.txt
   )
 
 slicerMacroBuildScriptedModule(

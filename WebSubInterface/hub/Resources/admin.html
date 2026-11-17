@@ -536,7 +536,7 @@
             gap: 8px;
             margin: 0;
             flex: 1 0 100%;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
             align-items: center;
         }
         .metric-card {
@@ -545,8 +545,8 @@
             border-radius: 6px;
             border-left: 3px solid var(--accent);
             box-shadow: var(--shadow-card);
-            flex: 0 0 auto;
-            min-width: 220px;
+            flex: 1 1 0;
+            min-width: 0;
         }
         .metric-card-body {
             display: flex;
@@ -584,7 +584,7 @@
         }
         .metric-card canvas {
             display: block;
-            width: 160px;
+            width: 96px;
             height: 24px;
             flex-shrink: 0;
         }

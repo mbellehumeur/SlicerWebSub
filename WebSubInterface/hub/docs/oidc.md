@@ -29,6 +29,7 @@ HUB_OIDC_CLIENT_SECRET=...
 HUB_OIDC_REDIRECT_URI=https://oidc.bellehumeur-engineering.com/oauth/callback
 HUB_PUBLIC_BASE_URL=https://oidc.bellehumeur-engineering.com
 HUB_JWT_SECRET=<long random>
+HUB_ADMIN_TOKEN=<long random>
 HUB_OIDC_TOPIC_CLAIM=email
 HUB_OIDC_SCOPES=openid email profile
 # Optional: allow SPA origins for return_to (localhost is always allowed)
@@ -38,6 +39,7 @@ HUB_OIDC_SCOPES=openid email profile
 | Variable | Purpose |
 |----------|---------|
 | `HUB_AUTH_MODE` | `mock` or `oidc` |
+| `HUB_ADMIN_TOKEN` | Secret for privileged admin routes (required in oidc; client JWTs are not admin) |
 | `HUB_OIDC_ISSUER` | IdP issuer (Auth0 domain, Entra tenant, or `https://accounts.google.com`) |
 | `HUB_OIDC_CLIENT_ID` / `HUB_OIDC_CLIENT_SECRET` | OAuth web client credentials |
 | `HUB_OIDC_REDIRECT_URI` | Must match the IdP “callback URL” exactly (else derived from public base + `/oauth/callback`) |

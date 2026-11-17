@@ -19,6 +19,8 @@ _STATUS_TEXT_STYLE_IDLE = "color: palette(text);"
 _STATUS_TEXT_STYLE_RUNNING = "color: palette(link);"
 _STATUS_TEXT_STYLE_ERROR = "color: palette(negative);"
 
+from .python_deps import DepsDeclinedError as HubDepsDeclinedError
+from .python_deps import ensure_module_python_deps
 from .repo_paths import hub_dir, hub_script, repo_root
 from .spa_download import (
     SPA_DOWNLOAD_CATALOG,
@@ -30,46 +32,9 @@ from .spa_download import (
 )
 
 
-# pip spec -> import name (Slicer pip_install accepts one package per call).
-_HUB_PIP_PACKAGES = (
-    ("fastapi", "fastapi"),
-    ("uvicorn[standard]", "uvicorn"),
-    ("python-multipart", "multipart"),
-    ("aiohttp", "aiohttp"),
-    ("psutil", "psutil"),
-)
-
-
-class HubDepsDeclinedError(RuntimeError):
-    """User declined installing missing hub packages into Slicer Python."""
-
-
 def _ensure_hub_deps() -> None:
-    """Install hub deps via Slicer pip (one package per call) after confirm."""
-    missing = []
-    for pip_spec, import_name in _HUB_PIP_PACKAGES:
-        try:
-            __import__(import_name)
-        except ImportError:
-            missing.append(pip_spec)
-    if not missing:
-        return
-    package_list = "\n".join(f"  • {spec}" for spec in missing)
-    if not slicer.util.confirmYesNoDisplay(
-        _(
-            "The hub needs packages that are not installed in this Slicer "
-            "Python environment:\n\n{packages}\n\n"
-            "Install them now with pip? This changes the Slicer Python site-packages."
-        ).format(packages=package_list),
-        windowTitle=_("Install hub dependencies"),
-    ):
-        raise HubDepsDeclinedError("dependency install declined")
-    for pip_spec in missing:
-        slicer.util.pip_install(pip_spec)
-    import importlib
-
-    for _pip_spec, import_name in _HUB_PIP_PACKAGES:
-        importlib.import_module(import_name)
+    """Install hub/client deps into Slicer Python (action-time confirm)."""
+    ensure_module_python_deps(requester="WebSubInterface Hub")
 
 
 def _is_windows() -> bool:
@@ -364,7 +329,8 @@ class HubServerWidget:
 
         proc = qt.QProcess()
         proc.setProgram(sys.executable)
-        proc.setArguments([script, "--port", str(port)])
+        # Loopback only: embedded Slicer hub must not listen on the LAN by default.
+        proc.setArguments([script, "--host", "127.0.0.1", "--port", str(port)])
         proc.setWorkingDirectory(hub_path)
         proc.setProcessChannelMode(qt.QProcess.MergedChannels)
         proc.readyReadStandardOutput.connect(self._on_hub_output)

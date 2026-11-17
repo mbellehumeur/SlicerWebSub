@@ -8,7 +8,13 @@ pip install -r requirements.txt
 python hub.py --port 2018
 ```
 
+Default CLI bind is `0.0.0.0` (for Docker/cloud). The Slicer module Hub **Start** button
+passes `--host 127.0.0.1` so the embedded local hub listens on loopback only.
+
 Admin: http://127.0.0.1:2018/api/hub/admin
+
+OIDC/cloud: set `HUB_ADMIN_TOKEN` for `/api/hub/admin` and other privileged admin routes
+(ordinary user JWTs are not accepted as admin).
 
 See [docs/HUB-README.md](docs/HUB-README.md) and [azure-webapp.md](azure-webapp.md).
 

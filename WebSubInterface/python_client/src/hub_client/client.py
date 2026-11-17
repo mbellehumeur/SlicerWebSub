@@ -164,9 +164,19 @@ def build_hub_request_event(
     return event
 
 
-import aiohttp
-
 LOGGER = logging.getLogger(__name__)
+
+_aiohttp = None
+
+
+def _aiohttp_mod():
+    """Lazy-import aiohttp so constants/helpers load without the package installed."""
+    global _aiohttp
+    if _aiohttp is None:
+        import aiohttp as _aiohttp_imported
+
+        _aiohttp = _aiohttp_imported
+    return _aiohttp
 
 
 def _short_caller_stack(skip: int = 2, depth: int = 6) -> str:
@@ -243,7 +253,7 @@ def _env_str(name: str, default: str) -> str:
     return raw if raw else default
 
 
-def _tune_websocket_socket(ws: "aiohttp.ClientWebSocketResponse") -> None:
+def _tune_websocket_socket(ws: Any) -> None:
     """Lift TCP send/receive buffer sizes on the aiohttp WS socket.
 
     Called right after ``ws_connect``. Reaches into the writer's transport to
@@ -1277,7 +1287,7 @@ class SlicerHubClient(HubClient):
         session: SessionConfig,
         options: Optional[HubClientOptions] = None,
         *,
-        session_http: Optional[aiohttp.ClientSession] = None,
+        session_http: Optional[Any] = None,
     ) -> None:
         self._hub = HubConfig(
             hub_endpoint=_normalize_loopback_url(hub.hub_endpoint),
@@ -1303,7 +1313,7 @@ class SlicerHubClient(HubClient):
         self._resubscribe_requested = False
         self._oidc_session = False
         self._auth_mode = ""
-        self._ws: Optional[aiohttp.ClientWebSocketResponse] = None
+        self._ws: Optional[Any] = None
         self._ws_task: Optional[asyncio.Task[None]] = None
         self._reconnect_task: Optional[asyncio.Task[None]] = None
         self._reconnect_fail_streak = 0
@@ -1334,8 +1344,9 @@ class SlicerHubClient(HubClient):
         if self._on_connection_state:
             self._on_connection_state(state, detail)
 
-    async def _get_http(self) -> aiohttp.ClientSession:
+    async def _get_http(self) -> Any:
         if self._http is None:
+            aiohttp = _aiohttp_mod()
             max_concurrent = max(1, HUB_CLIENT_HTTP_PAYLOAD_MAX_CONCURRENT)
             self._http = aiohttp.ClientSession(
                 timeout=aiohttp.ClientTimeout(total=None, connect=10, sock_read=600),
@@ -1827,6 +1838,7 @@ class SlicerHubClient(HubClient):
         if ws is None or ws.closed:
             LOGGER.debug("Hub websocket outbound skipped (%s): socket closed", label)
             return
+        aiohttp = _aiohttp_mod()
         try:
             await ws.send_str(payload)
         except aiohttp.ClientConnectionResetError as exc:
@@ -2186,6 +2198,7 @@ class SlicerHubClient(HubClient):
 
     async def _websocket_reader(self) -> None:
         assert self._ws is not None
+        aiohttp = _aiohttp_mod()
         try:
             async for msg in self._ws:
                 if msg.type == aiohttp.WSMsgType.TEXT:

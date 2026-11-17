@@ -207,6 +207,8 @@ Slicer WebSub is distributed under the [MIT License](LICENSE.txt).
 
 **IDC Claude** — builds custom worklists from natural-language queries against the [Imaging Data Commons](https://portal.imaging.datacommons.cancer.gov/) (National Cancer Institute) using Anthropic Claude. Query guidance follows the [IDC skill](https://github.com/ImagingDataCommons/imaging-data-commons-skill).
 
+**SegRoulette** — worklist demo that randomly samples public DICOM SEG series paired with source images from the [Imaging Data Commons](https://imaging.datacommons.cancer.gov/) (National Cancer Institute). Cite the IDC *RadioGraphics* paper when using this data in research (see Citations).
+
 **idc-index** — official [Imaging Data Commons](https://github.com/ImagingDataCommons/idc-index) Python package for local DuckDB SQL against IDC metadata and DICOM series download URLs; used by the IDC Claude service provider. See Citations below for the IDC / idc-index paper.
 
 **OHIF** — open-source zero-footprint viewer from the [Open Health Imaging Foundation](https://ohif.org/).

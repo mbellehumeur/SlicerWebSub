@@ -59,7 +59,7 @@ Primary switch: **`HUB_AUTH_MODE=mock|oidc`** (default `mock`). Full setup (Auth
 | **OIDC (Google)** | `HUB_AUTH_MODE=oidc` + issuer/client/JWT secret | Browser login via HubClient; hub mints session JWT; Bearer required; topic must match JWT |
 | **Admin token (hosted demos)** | `HUB_ADMIN_TOKEN=<secret>` | Admin snapshot/metrics/clear-audit/reset and `/ws/admin` require `X-Hub-Admin-Token` (or `?admin_token=` / Bearer equal to the secret) |
 
-Bearer / admin-token validation lives in [`Lib/oauth_tokens.py`](Lib/oauth_tokens.py) (HS256 hub session + discovery JWKS for IdP id_tokens + `HUB_ADMIN_TOKEN`). Admin snapshot omits subscription `secret` values. `DELETE /api/hub` only unsubscribes a specific endpoint/callback+topic (no mass clear; use `POST /api/admin/reset`). Python `hub_client` supports mock `GET /oauth/login` and OIDC browser / M2M.
+Bearer / admin-token validation lives in [`Lib/oauth_tokens.py`](Lib/oauth_tokens.py) (HS256 hub session + discovery JWKS for IdP id_tokens + `HUB_ADMIN_TOKEN`). When `HUB_REQUIRE_AUTH` or `HUB_ADMIN_TOKEN` is set, privileged admin routes accept **only** `HUB_ADMIN_TOKEN` — ordinary client JWTs are not admin. OIDC/cloud deploys must set `HUB_ADMIN_TOKEN`. Admin snapshot omits subscription `secret` values. `DELETE /api/hub` only unsubscribes a specific endpoint/callback+topic (no mass clear; use `POST /api/admin/reset`). Python `hub_client` supports mock `GET /oauth/login` and OIDC browser / M2M.
 
 Conference UI: `/api/hub/conference-client`, APIs under `/api/hub/conference` and `/api/hub/conference-topics`.
 

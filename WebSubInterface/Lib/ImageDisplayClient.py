@@ -15,6 +15,7 @@ from slicer.i18n import tr as _
 from hub_client import IMAGINGSTUDY_OPEN, generate_subscriber_name
 from .conference import hub_endpoint_for_name
 from .ConferenceDialog import ConferenceDialog
+from .python_deps import DepsDeclinedError, ensure_module_python_deps
 from .hub_presets import (
     DEFAULT_HUB_NAME,
     HUBS,
@@ -39,6 +40,7 @@ _SETTINGS_GROUP = "WebSubInterface"
 _SETTINGS_KEY_HUB = "imageDisplayHub"
 _SETTINGS_KEY_TOPIC = "imageDisplayTopic"
 _SETTINGS_KEY_OIDC = "imageDisplayOidc"
+_PHI_CONNECT_SETTINGS_KEY = "WebSubInterface/DontShowImageDisplayPhiWarning"
 
 _STATUS_EDIT_BASE_STYLE = (
     "QPlainTextEdit { border: none; background: transparent; padding: 0; }"
@@ -550,6 +552,28 @@ class ImageDisplayClientWidget:
             self.topicEdit.clear()
         elif not topic:
             slicer.util.errorDisplay(_("Enter a topic before connecting."))
+            return
+
+        if not slicer.util.confirmYesNoDisplay(
+            _(
+                "While connected, peers on this hub topic can request your local "
+                "Slicer DICOM database worklist and images. Continue only if this "
+                "system does not hold patient PHI you must not share."
+            ),
+            windowTitle=_("Share local DICOM?"),
+            dontShowAgainSettingsKey=_PHI_CONNECT_SETTINGS_KEY,
+        ):
+            return
+
+        try:
+            ensure_module_python_deps(requester="WebSubInterface Image Display")
+        except DepsDeclinedError:
+            self._set_status_text(_("Connect cancelled (dependencies not installed)"))
+            return
+        except Exception as exc:
+            slicer.util.errorDisplay(
+                _("Dependency install failed: {0}").format(exc)
+            )
             return
 
         product_name = self._product_name()

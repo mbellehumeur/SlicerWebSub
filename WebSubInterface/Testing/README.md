@@ -34,8 +34,10 @@ Individual scripts:
 
 ```bash
 python Testing/Python/hub/smoke_hub_http.py
+python Testing/Python/hub/test_admin_access.py
 python Testing/Python/python_client/smoke_client_pubsub.py
 python Testing/Python/image_display/test_imaging_study_context.py
+python Testing/Python/image_display/test_safe_zip_extract.py
 python Testing/Python/python_client/test_event_names.py
 ```
 

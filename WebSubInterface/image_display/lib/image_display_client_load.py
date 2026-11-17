@@ -24,6 +24,7 @@ from imaging_study_context import (
     ImagingStudyOpenPlan,
     resolve_imaging_study_open_plan,
 )
+from safe_zip import safe_extract_zip
 
 LOGGER = logging.getLogger("WebSubInterface.ImageDisplay")
 
@@ -139,7 +140,7 @@ def _download_hub_file_entry(
             extract_dir = os.path.join(temp_dir, f"zip-{index}")
             os.makedirs(extract_dir, exist_ok=True)
             with zipfile.ZipFile(local_path, "r") as archive:
-                archive.extractall(extract_dir)
+                safe_extract_zip(archive, extract_dir)
             local_paths.extend(_collect_dicom_paths(extract_dir))
             for root, _, names in os.walk(extract_dir):
                 for name in names:
@@ -160,7 +161,7 @@ def _download_hub_file_entry(
         extract_dir = os.path.join(temp_dir, f"zip-{index}")
         os.makedirs(extract_dir, exist_ok=True)
         with zipfile.ZipFile(local_path, "r") as archive:
-            archive.extractall(extract_dir)
+            safe_extract_zip(archive, extract_dir)
         for root, _, names in os.walk(extract_dir):
             for name in names:
                 full = os.path.join(root, name)

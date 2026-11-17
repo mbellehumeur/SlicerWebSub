@@ -382,11 +382,16 @@ def validate_admin_access(
     """Authorize privileged admin routes.
 
     When neither ``HUB_ADMIN_TOKEN`` nor ``HUB_REQUIRE_AUTH`` is set, allow
-    (local demo). Otherwise accept a matching admin token (header/query/Bearer)
-    or, if ``HUB_REQUIRE_AUTH``, a valid client JWT.
+    (local demo). Otherwise require a matching ``HUB_ADMIN_TOKEN``
+    (header/query/Bearer). Ordinary client JWTs are never admin.
     """
     if not admin_auth_required():
         return {}
+
+    if not HUB_ADMIN_TOKEN:
+        raise TokenValidationError(
+            "HUB_ADMIN_TOKEN is required for admin routes when authentication is enabled"
+        )
 
     candidates: list[str] = []
     for raw in (
@@ -399,37 +404,10 @@ def validate_admin_access(
         if token and token not in candidates:
             candidates.append(token)
 
-    if HUB_ADMIN_TOKEN:
-        for candidate in candidates:
-            if _token_matches_admin(candidate):
-                return {"admin": True, "via": "admin_token"}
+    for candidate in candidates:
+        if _token_matches_admin(candidate):
+            return {"admin": True, "via": "admin_token"}
 
-    if HUB_REQUIRE_AUTH:
-        # Prefer Authorization / access_token; also accept candidates from
-        # X-Hub-Admin-Token / admin_token when they are hub session JWTs.
-        ordered: list[str] = []
-        for raw in (
-            extract_bearer_token(authorization_header),
-            (query_access_token or "").strip(),
-            *candidates,
-        ):
-            token = (raw or "").strip()
-            if token and token not in ordered:
-                ordered.append(token)
-        if not ordered:
-            raise TokenValidationError("Missing Authorization Bearer token")
-        last_error: Optional[Exception] = None
-        for token in ordered:
-            if HUB_ADMIN_TOKEN and _token_matches_admin(token):
-                return {"admin": True, "via": "admin_token"}
-            try:
-                claims = verify_bearer_token(token)
-                return claims_to_identity(claims)
-            except TokenValidationError as exc:
-                last_error = exc
-                continue
-        raise TokenValidationError(
-            str(last_error) if last_error else "Invalid or missing admin token"
-        )
-
+    if not candidates:
+        raise TokenValidationError("Missing admin token")
     raise TokenValidationError("Invalid or missing admin token")
