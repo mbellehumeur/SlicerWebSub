@@ -21,6 +21,7 @@ from .conference import (
     fetch_conferences,
     find_active_cast_conference,
     is_cast_conference_host,
+    join_cast_conference,
 )
 
 LOGGER = logging.getLogger("WebSubInterface.ConferenceDialog")
@@ -98,7 +99,7 @@ class ConferenceDialog(qt.QDialog):
         self._custom_title_edit.hide()
         create_layout.addWidget(self._custom_title_edit)
 
-        users_label = qt.QLabel(_("Users"))
+        users_label = qt.QLabel(_("Invite users"))
         users_label.setStyleSheet("font-weight: 600; font-size: 12px;")
         create_layout.addWidget(users_label)
 
@@ -108,9 +109,30 @@ class ConferenceDialog(qt.QDialog):
         self._topics_list.setSpacing(2)
         create_layout.addWidget(self._topics_list)
 
+        create_hint = qt.QLabel(
+            _("Invited users get a join prompt; they are not members until they accept.")
+        )
+        create_hint.setWordWrap(True)
+        create_hint.setStyleSheet("color: palette(mid); font-size: 11px;")
+        create_layout.addWidget(create_hint)
+
         self._create_button = qt.QPushButton(_("Create conference"))
         self._create_button.clicked.connect(self._on_create)
         create_layout.addWidget(self._create_button)
+
+        join_label = qt.QLabel(_("Join a conference"))
+        join_label.setStyleSheet("font-weight: 600; font-size: 12px;")
+        create_layout.addWidget(join_label)
+
+        self._join_list = qt.QListWidget()
+        self._join_list.setMinimumHeight(80)
+        self._join_list.setMaximumHeight(132)
+        self._join_list.setSpacing(2)
+        create_layout.addWidget(self._join_list)
+
+        self._join_button = qt.QPushButton(_("Join conference"))
+        self._join_button.clicked.connect(self._on_join)
+        create_layout.addWidget(self._join_button)
 
         root.addWidget(self._create_section)
 
@@ -233,14 +255,22 @@ class ConferenceDialog(qt.QDialog):
 
     def _set_busy(self, busy: bool) -> None:
         self._busy = busy
-        self._create_button.enabled = not busy and self._connected
-        self._exit_button.enabled = not busy and self._connected
+        enabled = not busy and self._connected
+        self._create_button.enabled = enabled
+        self._join_button.enabled = enabled
+        self._exit_button.enabled = enabled
 
     def _set_topics_placeholder(self, message: str) -> None:
         self._topics_list.clear()
         item = qt.QListWidgetItem(message)
         item.setFlags(qt.Qt.NoItemFlags)
         self._topics_list.addItem(item)
+
+    def _set_join_placeholder(self, message: str) -> None:
+        self._join_list.clear()
+        item = qt.QListWidgetItem(message)
+        item.setFlags(qt.Qt.NoItemFlags)
+        self._join_list.addItem(item)
 
     @staticmethod
     def _conference_users_text(conference: Dict[str, Any]) -> str:
@@ -273,6 +303,7 @@ class ConferenceDialog(qt.QDialog):
 
         self._set_busy(True)
         self._set_topics_placeholder(_("Loading users…"))
+        self._set_join_placeholder(_("Loading conferences…"))
         if not self._fetch_poll_timer.isActive():
             self._fetch_poll_timer.start()
 
@@ -381,7 +412,27 @@ class ConferenceDialog(qt.QDialog):
                 )
                 self._topics_list.addItem(item)
 
-        self._create_button.enabled = self._connected and not self._busy
+        self._join_list.clear()
+        joinable = [
+            conf
+            for conf in self._conferences
+            if conference_host_topic(conf)
+            and conference_host_topic(conf) != self._session_topic
+        ]
+        if not joinable:
+            self._set_join_placeholder(_("No conferences available"))
+        else:
+            for conf in joinable:
+                host = conference_host_topic(conf)
+                title = str(conf.get("title") or "").strip() or host
+                item = qt.QListWidgetItem(f"{title} ({host})")
+                item.setData(qt.Qt.UserRole, host)
+                item.setFlags(qt.Qt.ItemIsEnabled | qt.Qt.ItemIsSelectable)
+                self._join_list.addItem(item)
+
+        enabled = self._connected and not self._busy
+        self._create_button.enabled = enabled
+        self._join_button.enabled = enabled and bool(joinable)
         self._fit_to_content()
 
     def _selected_topics(self) -> List[str]:
@@ -396,6 +447,14 @@ class ConferenceDialog(qt.QDialog):
                 selected.append(str(self._qt_value(item, "text") or ""))
         return selected
 
+    def _selected_join_host(self) -> str:
+        item = self._join_list.currentItem()
+        if item is None:
+            return ""
+        if self._qt_value(item, "flags") == qt.Qt.NoItemFlags:
+            return ""
+        return str(item.data(qt.Qt.UserRole) or "").strip()
+
     def _on_create(self, *_args) -> None:
         if not self._connected:
             self._set_status("error", _("Connect to the Slicer hub first."))
@@ -409,8 +468,9 @@ class ConferenceDialog(qt.QDialog):
             self._set_status("error", _("Conference title is required."))
             return
         selected = self._selected_topics()
-        if not selected:
-            self._set_status("error", _("Select at least one attendee topic."))
+        invitees = [t for t in selected if t != host_topic]
+        if not invitees:
+            self._set_status("error", _("Select at least one invitee."))
             return
 
         self._set_busy(True)
@@ -420,7 +480,7 @@ class ConferenceDialog(qt.QDialog):
                 self._hub_endpoint,
                 host_topic,
                 title,
-                selected,
+                invitees,
             )
             self._clear_status()
             slicer.util.warningDisplay(
@@ -435,6 +495,35 @@ class ConferenceDialog(qt.QDialog):
         except Exception as exc:
             LOGGER.warning("Create conference failed: %s", exc)
             self._set_status("error", str(exc) or _("Failed to create conference."))
+        finally:
+            self._set_busy(False)
+
+    def _on_join(self, *_args) -> None:
+        if not self._connected:
+            self._set_status("error", _("Connect to the Slicer hub first."))
+            return
+        join_topic = self._session_topic
+        if not join_topic:
+            self._set_status("error", _("Hub topic is required to join a conference."))
+            return
+        host_topic = self._selected_join_host()
+        if not host_topic:
+            self._set_status("error", _("Select a conference to join."))
+            return
+
+        self._set_busy(True)
+        self._clear_status()
+        try:
+            join_cast_conference(
+                self._hub_endpoint,
+                host_topic,
+                join_topic,
+            )
+            self._set_status("success", _("Joined conference."))
+            self._refresh_data()
+        except Exception as exc:
+            LOGGER.warning("Join conference failed: %s", exc)
+            self._set_status("error", str(exc) or _("Failed to join conference."))
         finally:
             self._set_busy(False)
 

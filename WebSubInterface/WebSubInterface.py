@@ -44,10 +44,10 @@ class WebSubInterface(ScriptedLoadableModule):
             and vanishing ToolBrush.
             The <b>SlicerMirror</b> client can view the Qt viewer in sync.<br><br>
             <b>Quick test — local hub</b><br>
-            1. Expand <b>Hub</b>. Under <b>SPAs</b>, check at least <b>Worklist</b>
-            (add OHIF or others if you need those viewers), then click <b>Download SPAs</b>
-            — clients are not shipped in the extension; this fetches them from GitHub
-            into the local hub folder. Restart the hub after download if it was already running.<br>
+            1. Expand <b>Hub</b>. Click <b>How to install SPAs…</b>, download
+            <code>spa-clients.zip</code> from the GitHub release, and extract it into
+            the local hub folder (clients are not shipped in the extension).
+            Restart the hub after install if it was already running.<br>
             2. Set <b>Port</b> (default 2018), click <b>Start</b> (listens on
             <code>127.0.0.1</code> only), then
             <b>Open Hub Portal</b> if you want the admin UI.<br>

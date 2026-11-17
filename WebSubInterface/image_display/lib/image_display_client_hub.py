@@ -336,12 +336,74 @@ class ImageDisplayClientConnection:
         context = event.get("context") if isinstance(event, dict) else None
         title = ""
         participants: List[str] = []
+        host_topic = ""
+        joined_topic = ""
         if isinstance(context, dict):
             title = str(context.get("title") or "").strip()
             participants = normalize_conference_participants(
                 context.get("participants")
             )
-        self._set_conference_active(True, title, participants)
+            host_topic = str(
+                context.get("hostTopic") or context.get("user") or ""
+            ).strip()
+            joined_topic = str(context.get("joinedTopic") or "").strip()
+        if isinstance(event, dict) and not host_topic:
+            host_topic = str(event.get("hub.topic") or "").strip()
+
+        session_topic = (self._topic or "").strip()
+        is_host = bool(
+            session_topic
+            and host_topic
+            and session_topic.lower() == host_topic.lower()
+        )
+        is_self_join = bool(
+            session_topic
+            and joined_topic
+            and session_topic.lower() == joined_topic.lower()
+        )
+        if is_host or is_self_join or self._conference_active:
+            self._set_conference_active(True, title, participants)
+            self._emit_status("connected", self._connected_status_detail())
+            return
+
+        # Invite notify only — membership requires /join after user confirm.
+        self.schedule_main_thread(
+            lambda: self._prompt_conference_invite(host_topic, title),
+            urgent=True,
+        )
+
+    def _prompt_conference_invite(self, host_topic: str, title: str) -> None:
+        """Ask to join after conference-start invite; call hub /join on Yes."""
+        import slicer
+        from slicer.i18n import tr as _
+        from Lib.conference import join_cast_conference
+        from Lib.hub_presets import HUBS
+
+        host = str(host_topic or "").strip()
+        join_topic = (self._topic or "").strip()
+        if not host or not join_topic or host.lower() == join_topic.lower():
+            return
+        hub_def = HUBS.get(self._hub_name) or {}
+        hub_endpoint = str(hub_def.get("hub_endpoint") or "").strip()
+        if not hub_endpoint:
+            return
+        label = str(title or "").strip() or host
+        if not slicer.util.confirmYesNoDisplay(
+            _("Join conference “{title}”? Host: {host}").format(
+                title=label, host=host
+            ),
+            windowTitle=_("Conference invite"),
+        ):
+            return
+        try:
+            join_cast_conference(hub_endpoint, host, join_topic)
+        except Exception as exc:
+            LOGGER.warning("Conference invite join failed: %s", exc)
+            slicer.util.warningDisplay(
+                _("Could not join conference: {error}").format(error=exc)
+            )
+            return
+        self._set_conference_active(True, str(title or "").strip(), None)
         self._emit_status("connected", self._connected_status_detail())
 
     def _handle_conference_end(self, message: Dict[str, Any]) -> None:

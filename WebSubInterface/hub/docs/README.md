@@ -62,6 +62,7 @@ Primary switch: **`HUB_AUTH_MODE=mock|oidc`** (default `mock`). Full setup (Auth
 Bearer / admin-token validation lives in [`Lib/oauth_tokens.py`](Lib/oauth_tokens.py) (HS256 hub session + discovery JWKS for IdP id_tokens + `HUB_ADMIN_TOKEN`). When `HUB_REQUIRE_AUTH` or `HUB_ADMIN_TOKEN` is set, privileged admin routes accept **only** `HUB_ADMIN_TOKEN` — ordinary client JWTs are not admin. OIDC/cloud deploys must set `HUB_ADMIN_TOKEN`. Admin snapshot omits subscription `secret` values. `DELETE /api/hub` only unsubscribes a specific endpoint/callback+topic (no mass clear; use `POST /api/admin/reset`). Python `hub_client` supports mock `GET /oauth/login` and OIDC browser / M2M.
 
 Conference UI: `/api/hub/conference-client`, APIs under `/api/hub/conference` and `/api/hub/conference-topics`.
+Create keeps membership empty; caller-supplied `topics` are an invite notify list only (`conference-start` fan-out). Attendees must `PATCH /api/hub/conference/join` as themselves before request/publish fan-out includes them. In OIDC mode, create/end bind to the JWT host topic, join binds to `joinTopic`, and leave binds to `leaveTopic`.
 
 Event names (`<datatype>-request` / `<datatype>-response` and fixed wire events) are defined in [`../python_client/src/hub_client/client.py`](../python_client/src/hub_client/client.py) and mirrored in `@slicer-hub/client` `eventNames.js`.
 

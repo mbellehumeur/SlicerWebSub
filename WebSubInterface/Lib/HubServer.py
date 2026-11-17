@@ -6,7 +6,7 @@ import os
 import socket
 import subprocess
 import sys
-from typing import List, Optional
+from typing import Optional
 
 import qt
 
@@ -21,14 +21,10 @@ _STATUS_TEXT_STYLE_ERROR = "color: palette(negative);"
 
 from .python_deps import DepsDeclinedError as HubDepsDeclinedError
 from .python_deps import ensure_module_python_deps
-from .repo_paths import hub_dir, hub_script, repo_root
-from .spa_download import (
-    SPA_DOWNLOAD_CATALOG,
-    default_checked,
-    download_and_extract,
-    is_installed,
-    spa_checkbox_label,
-    spa_download_help_text,
+from .repo_paths import hub_dir, hub_script
+
+SPA_CLIENTS_RELEASE_URL = (
+    "https://github.com/mbellehumeur/SlicerWebSub/releases/tag/spa-clients"
 )
 
 
@@ -105,9 +101,8 @@ class HubServerWidget:
         self.startButton: Optional[qt.QPushButton] = None
         self.stopButton: Optional[qt.QPushButton] = None
         self.openAdminButton: Optional[qt.QPushButton] = None
-        self.downloadSpasButton: Optional[qt.QPushButton] = None
+        self.spaHelpButton: Optional[qt.QPushButton] = None
         self.statusLabel: Optional[qt.QLabel] = None
-        self._spa_checkboxes: dict = {}
 
     def setup(self, section: qt.QWidget) -> None:
         if self._setup_complete:
@@ -145,155 +140,39 @@ class HubServerWidget:
         self.statusLabel.setStyleSheet(_STATUS_TEXT_STYLE_IDLE)
         layout.addRow(_("Status:"), self.statusLabel)
 
-        spa_panel = qt.QWidget()
-        spa_layout = qt.QVBoxLayout(spa_panel)
-        spa_layout.setContentsMargins(0, 0, 0, 0)
-        spa_layout.setSpacing(2)
-        spa_grid = qt.QWidget()
-        spa_grid_layout = qt.QGridLayout(spa_grid)
-        spa_grid_layout.setContentsMargins(0, 0, 0, 0)
-        spa_grid_layout.setHorizontalSpacing(12)
-        spa_grid_layout.setVerticalSpacing(2)
-        self._spa_checkboxes = {}
-        columns = 4
-        for index, entry in enumerate(SPA_DOWNLOAD_CATALOG):
-            checkbox = qt.QCheckBox(spa_checkbox_label(entry))
-            checkbox.setProperty("spaFolder", entry.folder)
-            self._spa_checkboxes[entry.folder] = checkbox
-            spa_grid_layout.addWidget(checkbox, index // columns, index % columns)
-        spa_layout.addWidget(spa_grid)
-        self.downloadSpasButton = qt.QPushButton(_("Download SPAs"))
-        self.downloadSpasButton.setToolTip(
+        self.spaHelpButton = qt.QPushButton(_("How to install SPAs…"))
+        self.spaHelpButton.setToolTip(
             _(
-                "Download selected browser clients from GitHub into the local "
-                "hub folder (worklist, OHIF, …)"
+                "Show instructions for downloading browser clients into the "
+                "local hub folder"
             )
         )
-        spa_layout.addWidget(self.downloadSpasButton)
-        spa_help = qt.QLabel(_(spa_download_help_text()))
-        spa_help.setWordWrap(True)
-        spa_help.setStyleSheet("color: palette(mid); font-size: 11px;")
-        spa_layout.addWidget(spa_help)
-        layout.addRow(_("SPAs:"), spa_panel)
-        self._refresh_spa_checkboxes()
+        layout.addRow(_("SPAs:"), self.spaHelpButton)
 
         self.startButton.connect("clicked()", self._on_start)
         self.stopButton.connect("clicked()", self._on_stop)
         self.openAdminButton.connect("clicked()", self._on_open_admin)
-        self.downloadSpasButton.connect("clicked()", self._on_download_spas)
+        self.spaHelpButton.connect("clicked()", self._on_spa_help)
 
     def _set_status(self, text: str, style: str = _STATUS_TEXT_STYLE_IDLE) -> None:
         if self.statusLabel:
             self.statusLabel.setText(text)
             self.statusLabel.setStyleSheet(style)
 
-    def _refresh_spa_checkboxes(self) -> None:
-        root = hub_dir()
-        for entry in SPA_DOWNLOAD_CATALOG:
-            checkbox = self._spa_checkboxes.get(entry.folder)
-            if not checkbox:
-                continue
-            checkbox.setText(spa_checkbox_label(entry))
-            installed = is_installed(root, entry.folder)
-            checkbox.setChecked(default_checked(entry.folder, installed))
-            if installed:
-                checkbox.setToolTip(
-                    _("Already installed — check to re-download and overwrite")
-                )
-            else:
-                checkbox.setToolTip(
-                    _("Not installed — download from GitHub release {tag}").format(
-                        tag="spa-clients"
-                    )
-                )
-
-    def _on_download_spas(self) -> None:
-        selected = [
-            folder
-            for folder, checkbox in self._spa_checkboxes.items()
-            if checkbox and checkbox.isChecked()
-        ]
-        if not selected:
-            self._set_status(
-                _("Select at least one SPA to download"),
-                _STATUS_TEXT_STYLE_IDLE,
-            )
-            return
-
-        root = hub_dir()
-        overwrite = [f for f in selected if is_installed(root, f)]
-        if overwrite:
-            names = ", ".join(overwrite)
-            if not slicer.util.confirmYesNoDisplay(
-                _(
-                    "These SPAs are already installed and will be overwritten:\n\n"
-                    "{names}\n\nContinue?"
-                ).format(names=names),
-                windowTitle=_("Overwrite SPA clients"),
-            ):
-                return
-
-        if self.downloadSpasButton:
-            self.downloadSpasButton.enabled = False
-        ok_folders: List[str] = []
-        errors: List[str] = []
-        try:
-            for folder in selected:
-                label = next(
-                    (e.label for e in SPA_DOWNLOAD_CATALOG if e.folder == folder),
-                    folder,
-                )
-                self._set_status(
-                    _("Downloading {name}…").format(name=label),
-                    _STATUS_TEXT_STYLE_RUNNING,
-                )
-                slicer.app.processEvents()
-                try:
-                    download_and_extract(
-                        root,
-                        folder,
-                        overwrite=True,
-                    )
-                    ok_folders.append(folder)
-                except Exception as exc:
-                    errors.append(f"{label}: {exc}")
-        finally:
-            if self.downloadSpasButton:
-                self.downloadSpasButton.enabled = True
-            self._refresh_spa_checkboxes()
-
-        if errors and not ok_folders:
-            self._set_status(
-                _("SPA download failed: {0}").format(errors[0]),
-                _STATUS_TEXT_STYLE_ERROR,
-            )
-            return
-        if errors:
-            self._set_status(
-                _("Downloaded {n}; errors: {err}").format(
-                    n=len(ok_folders), err=errors[0]
-                ),
-                _STATUS_TEXT_STYLE_ERROR,
-            )
-        else:
-            self._set_status(
-                _("Downloaded {n} SPA(s)").format(n=len(ok_folders)),
-                _STATUS_TEXT_STYLE_RUNNING
-                if self._is_running()
-                else _STATUS_TEXT_STYLE_IDLE,
-            )
-
-        if ok_folders and self._is_running():
-            if slicer.util.confirmYesNoDisplay(
-                _(
-                    "SPA clients were installed, but the hub must restart to "
-                    "serve them. Stop and start the hub now?"
-                ),
-                windowTitle=_("Restart hub"),
-            ):
-                self._on_stop()
-                if not _port_is_listening("127.0.0.1", self._hub_port):
-                    self._on_start()
+    def _on_spa_help(self) -> None:
+        hub_path = str(hub_dir())
+        slicer.util.infoDisplay(
+            _(
+                "Example clients (worklist, OHIF, …) are not part of the "
+                "extension.\n\n"
+                "1. Download spa-clients.zip from:\n"
+                "{url}\n\n"
+                "2. Extract the zip into this hub folder:\n"
+                "{hub}\n\n"
+                "3. Restart the hub if it was already running so mounts reload."
+            ).format(url=SPA_CLIENTS_RELEASE_URL, hub=hub_path),
+            windowTitle=_("Install SPA clients"),
+        )
 
     def _hub_script_path(self) -> str:
         return str(hub_script())

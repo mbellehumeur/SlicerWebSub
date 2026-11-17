@@ -10,7 +10,6 @@ set(MODULE_PYTHON_SCRIPTS
   Lib/conference.py
   Lib/python_deps.py
   Lib/repo_paths.py
-  Lib/spa_download.py
   Lib/__init__.py
   )
 

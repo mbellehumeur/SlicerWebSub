@@ -100,7 +100,7 @@ The hub is a stateless routing appliance that distributes messages and handles d
   <img src="WebSubInterface/docs/images/hub-ui.png" alt="Hub UI" width="80%">
 </p>
 
-From this panel, you can download the clients that you need from GitHub release into the local hub folder. 
+Browser clients are not shipped in the extension. Use **How to install SPAs…** in this panel (or see the [hub README](WebSubInterface/hub/README.md#spa-clients-local-hub)): download `spa-clients.zip` from the [`spa-clients`](https://github.com/mbellehumeur/SlicerWebSub/releases/tag/spa-clients) release and extract it into the local hub folder.
 
 - **Worklist** — Conference worklist and viewer launcher.
 - **Reporting** — WIP DICOM SR client.

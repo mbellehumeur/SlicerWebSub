@@ -1,5 +1,5 @@
-# Build hub SPA trees and publish spa-*.zip assets to the floating
-# GitHub Release tag ``spa-clients`` (consumed by Slicer Hub Qt download).
+# Build hub SPA trees and publish spa-clients.zip to the floating
+# GitHub Release tag ``spa-clients`` (manual extract into local hub/).
 #
 # workflow_dispatch only. Light clients always; OHIF / Slim via inputs.
 
@@ -88,7 +88,7 @@ jobs:
           fi
           "${CMD[@]}"
 
-      - name: Pack spa-*.zip assets
+      - name: Pack spa-clients.zip
         run: |
           python WebSubInterface/hub/scripts/pack_spa_release_assets.py \
             --hub-dir WebSubInterface/hub \
@@ -101,11 +101,11 @@ jobs:
           set -euo pipefail
           TAG=spa-clients
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" spa-release/*.zip --clobber
+            gh release upload "$TAG" spa-release/spa-clients.zip --clobber
           else
-            gh release create "$TAG" spa-release/*.zip \
+            gh release create "$TAG" spa-release/spa-clients.zip \
               --title "Hub SPA clients" \
-              --notes "Floating release of hub browser SPA trees for the Slicer WebSub Hub Qt download button. Re-run **Publish SPA clients** to refresh assets." \
+              --notes "Floating release of hub browser SPA trees (spa-clients.zip). Download and extract into the local hub/ folder. Re-run **Publish SPA clients** to refresh." \
               --latest=false
           fi
           ls -la spa-release/

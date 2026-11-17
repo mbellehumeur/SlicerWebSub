@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
-"""Pack hub SPA folders into spa-<folder>.zip assets for the spa-clients release.
+"""Pack hub SPA folders into spa-clients.zip for the spa-clients release.
 
 Expects trees already synced under hub/ (index.html present). Does not build
 or sync from sibling repos — use prepare_spa_release.py or make_zip.py first.
+
+The zip has top-level SPA folder names so unpacking into hub/ installs mounts:
+    worklist-client/index.html, OHIF-client/..., …
 
 Usage (from anywhere):
     python WebSubInterface/hub/scripts/pack_spa_release_assets.py
@@ -16,7 +19,7 @@ import sys
 from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile
 
-# Keep in sync with Lib/spa_download.SPA_DOWNLOAD_CATALOG folders.
+# Keep in sync with hub/Lib/static_spa.py SPA_CLIENTS folders.
 SPA_FOLDERS = (
     "worklist-client",
     "reporting-client",
@@ -26,6 +29,8 @@ SPA_FOLDERS = (
     "slim",
     "OHIF-client",
 )
+
+COMBINED_ASSET_NAME = "spa-clients.zip"
 
 EXCLUDED_DIR_NAMES = {
     ".git",
@@ -52,30 +57,34 @@ def should_include(rel: Path) -> bool:
     return True
 
 
-def asset_name(folder: str) -> str:
-    return f"spa-{folder}.zip"
-
-
-def pack_folder(src: Path, zip_path: Path) -> int:
-    """Zip contents of src (not the folder name itself). Returns file count."""
+def pack_combined(hub: Path, zip_path: Path, folders: tuple[str, ...]) -> tuple[int, list[str]]:
+    """Zip SPA trees with folder names at zip root. Returns (file count, packed folders)."""
     if zip_path.exists():
         zip_path.unlink()
     count = 0
+    packed: list[str] = []
     with ZipFile(zip_path, "w", ZIP_DEFLATED) as zf:
-        for file_path in sorted(src.rglob("*")):
-            if not file_path.is_file():
+        for folder in folders:
+            src = hub / folder
+            if not (src / "index.html").is_file():
+                print(f"Skip {folder}/ (no index.html)", file=sys.stderr)
                 continue
-            rel = file_path.relative_to(src)
-            if not should_include(rel):
-                continue
-            zf.write(file_path, rel.as_posix())
-            count += 1
-    return count
+            packed.append(folder)
+            for file_path in sorted(src.rglob("*")):
+                if not file_path.is_file():
+                    continue
+                rel = file_path.relative_to(src)
+                if not should_include(rel):
+                    continue
+                arcname = f"{folder}/{rel.as_posix()}"
+                zf.write(file_path, arcname)
+                count += 1
+    return count, packed
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Pack hub SPA folders into spa-*.zip release assets"
+        description="Pack hub SPA folders into spa-clients.zip"
     )
     parser.add_argument(
         "--hub-dir",
@@ -85,7 +94,7 @@ def main() -> int:
     parser.add_argument(
         "--output-dir",
         default=None,
-        help="Directory for spa-*.zip files (default: <hub-dir>/spa-release)",
+        help="Directory for spa-clients.zip (default: <hub-dir>/spa-release)",
     )
     args = parser.parse_args()
 
@@ -97,26 +106,20 @@ def main() -> int:
     )
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    packed = 0
-    for folder in SPA_FOLDERS:
-        src = hub / folder
-        index = src / "index.html"
-        if not index.is_file():
-            print(f"Skip {folder}/ (no index.html)", file=sys.stderr)
-            continue
-        zip_path = out_dir / asset_name(folder)
-        n = pack_folder(src, zip_path)
-        print(f"Wrote {zip_path.name} ({n} files) from {folder}/")
-        packed += 1
-
-    if packed == 0:
+    zip_path = out_dir / COMBINED_ASSET_NAME
+    n, packed = pack_combined(hub, zip_path, SPA_FOLDERS)
+    if not packed:
+        if zip_path.exists():
+            zip_path.unlink()
         print(
             "Error: no SPA folders with index.html found under "
             f"{hub}. Sync clients first.",
             file=sys.stderr,
         )
         return 1
-    print(f"Packed {packed} asset(s) into {out_dir}")
+
+    print(f"Wrote {zip_path.name} ({n} files) from: {', '.join(packed)}")
+    print(f"Packed into {out_dir}")
     return 0
 
 

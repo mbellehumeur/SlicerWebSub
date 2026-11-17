@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Dict
+from typing import Any, Dict
 
 from fastapi import APIRouter, HTTPException, Request
 
@@ -14,10 +14,32 @@ from conference_logic import (
     _normalize_conference_topics,
     _send_conference_hub_event,
 )
-from http_util import _enforce_bearer_auth, _parse_request_body, _serve_html_page
+from http_util import (
+    _enforce_bearer_auth,
+    _enforce_topic_match,
+    _parse_request_body,
+    _serve_html_page,
+)
+from oauth_tokens import HUB_AUTH_MODE
 from state import hub
 
 router = APIRouter()
+
+
+def _enforce_conference_actor(
+    identity: Dict[str, Any], *allowed_topics: str
+) -> None:
+    """In oidc mode, require the JWT topic to be one of the allowed actor topics."""
+    if HUB_AUTH_MODE != "oidc":
+        return
+    claimed = str(identity.get("topic") or "").strip()
+    allowed = {str(t or "").strip() for t in allowed_topics if str(t or "").strip()}
+    if claimed and claimed in allowed:
+        _enforce_topic_match(identity, claimed)
+        return
+    # Fall through with the first allowed topic for a clear mismatch error.
+    target = next(iter(allowed), "")
+    _enforce_topic_match(identity, target)
 
 
 @router.get("/api/hub/conference-topics")
@@ -60,8 +82,8 @@ async def get_conference():
 
 @router.post("/api/hub/conference")
 async def post_conference(request: Request):
-    """Create a conference"""
-    _enforce_bearer_auth(request)
+    """Create a conference (host only; invitees notified, membership via /join)."""
+    identity = _enforce_bearer_auth(request)
     try:
         data = await _parse_request_body(request)
     except Exception as e:
@@ -69,8 +91,12 @@ async def post_conference(request: Request):
 
     host_topic = str(data.get("hostTopic") or data.get("user") or "").strip()
     title = str(data.get("title") or "").strip()
-    attendee_topics = _normalize_conference_topics(data.get("topics", []))
-    attendee_topics = [t for t in attendee_topics if t != host_topic]
+    # Invite notify list only — not membership until PATCH /join.
+    invite_topics = [
+        t
+        for t in _normalize_conference_topics(data.get("topics", []))
+        if t != host_topic
+    ]
     host_user_name = _host_user_name_for_topic(
         host_topic,
         str(data.get("hostUserName") or data.get("host_user_name") or "").strip(),
@@ -80,23 +106,28 @@ async def post_conference(request: Request):
         raise HTTPException(status_code=400, detail="hostTopic is required")
     if not title:
         raise HTTPException(status_code=400, detail="title is required")
+    _enforce_topic_match(identity, host_topic)
 
     conference = {
         "hostTopic": host_topic,
         "sceneLeaderTopic": host_topic,
         "title": title,
-        "topics": attendee_topics,
+        "topics": [],
     }
     hub.conferences.append(conference)
-    hub.log(f"Conference created: {conference.get('title')} host={host_topic}")
+    hub.log(
+        f"Conference created: {conference.get('title')} host={host_topic} "
+        f"invited={len(invite_topics)}"
+    )
 
-    all_participant_topics = _conference_participant_topics(conference)
     subscriber_names = _conference_participant_subscribers(conference)
+    # Notify host + invitees (invite prompt); membership stays empty until join.
+    notify_topics = [host_topic] + [t for t in invite_topics if t != host_topic]
 
     await _send_conference_hub_event(
         "conference-start",
         host_topic,
-        all_participant_topics,
+        notify_topics,
         {
             "title": title,
             "hostTopic": host_topic,
@@ -116,7 +147,7 @@ async def post_conference(request: Request):
 @router.patch("/api/hub/conference/join/")
 async def patch_conference_join(request: Request):
     """Add a topic to an existing conference (voluntary join from the client dialog)."""
-    _enforce_bearer_auth(request)
+    identity = _enforce_bearer_auth(request)
     try:
         data = await _parse_request_body(request)
     except Exception as e:
@@ -136,6 +167,8 @@ async def patch_conference_join(request: Request):
         raise HTTPException(
             status_code=400, detail="joinTopic cannot be the conference host"
         )
+    # You may only join as yourself (JWT topic must match joinTopic).
+    _enforce_topic_match(identity, join_topic)
 
     match = None
     for conf in hub.conferences:
@@ -185,7 +218,7 @@ async def patch_conference_join(request: Request):
 @router.patch("/api/hub/conference/lead/")
 async def patch_conference_lead(request: Request):
     """Transfer scene-update leadership; conference owner (hostTopic) is unchanged."""
-    _enforce_bearer_auth(request)
+    identity = _enforce_bearer_auth(request)
     try:
         data = await _parse_request_body(request)
     except Exception as e:
@@ -203,6 +236,8 @@ async def patch_conference_lead(request: Request):
         raise HTTPException(status_code=400, detail="hostTopic is required")
     if not scene_leader_topic:
         raise HTTPException(status_code=400, detail="sceneLeaderTopic is required")
+    # Host may assign any participant; others may only claim lead as themselves.
+    _enforce_conference_actor(identity, host_topic, scene_leader_topic)
 
     match = None
     for conf in hub.conferences:
@@ -251,7 +286,7 @@ async def patch_conference_lead(request: Request):
 @router.delete("/api/hub/conference")
 async def delete_conference(request: Request):
     """End a conference (host) or remove one attendee topic (leave)."""
-    _enforce_bearer_auth(request)
+    identity = _enforce_bearer_auth(request)
     try:
         data = await _parse_request_body(request)
     except Exception as e:
@@ -262,6 +297,10 @@ async def delete_conference(request: Request):
 
     if not host_topic:
         raise HTTPException(status_code=400, detail="hostTopic is required")
+    if leave_topic:
+        _enforce_topic_match(identity, leave_topic)
+    else:
+        _enforce_topic_match(identity, host_topic)
 
     removed = []
     updated = []

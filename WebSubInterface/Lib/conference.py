@@ -182,11 +182,17 @@ def create_cast_conference(
     hub_endpoint: str,
     host_topic: str,
     title: str,
-    topics: List[str],
+    topics: Optional[List[str]] = None,
 ) -> None:
+    """Create a conference. ``topics`` are invite notifications only (self-join)."""
     api_url = _conference_api_url(hub_endpoint, "/api/hub/conference")
     if not api_url:
         raise ValueError("Invalid hub endpoint")
+    invitees = [
+        str(t).strip()
+        for t in (topics or [])
+        if str(t).strip() and str(t).strip() != str(host_topic).strip()
+    ]
     try:
         _http_json(
             api_url,
@@ -194,9 +200,36 @@ def create_cast_conference(
             body={
                 "hostTopic": str(host_topic).strip(),
                 "title": str(title).strip(),
-                "topics": topics,
+                "topics": invitees,
             },
         )
+    except HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(detail or f"HTTP {exc.code}") from exc
+    except (URLError, OSError, json.JSONDecodeError) as exc:
+        raise RuntimeError(str(exc)) from exc
+
+
+def join_cast_conference(
+    hub_endpoint: str,
+    host_topic: str,
+    join_topic: str,
+    *,
+    join_user_name: str = "",
+) -> None:
+    """Voluntary join: add ``join_topic`` to an existing conference."""
+    api_url = _conference_api_url(hub_endpoint, "/api/hub/conference/join")
+    if not api_url:
+        raise ValueError("Invalid hub endpoint")
+    body: Dict[str, str] = {
+        "hostTopic": str(host_topic).strip(),
+        "joinTopic": str(join_topic).strip(),
+    }
+    label = str(join_user_name or "").strip()
+    if label:
+        body["joinUserName"] = label
+    try:
+        _http_json(api_url, method="PATCH", body=body)
     except HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")
         raise RuntimeError(detail or f"HTTP {exc.code}") from exc

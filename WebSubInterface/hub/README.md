@@ -26,14 +26,12 @@ Slicer Extension Manager package. They are optional folders under `hub/`
 
 ### In 3D Slicer (Hub section)
 
-1. Start or stop the local hub as usual.
-2. Under **SPAs**, check the clients you want (missing light clients are
-   pre-checked; OHIF / Slim stay unchecked by default).
-3. Click **Download SPAs** — each selected tree is fetched from the floating
-   GitHub Release
-   [`spa-clients`](https://github.com/mbellehumeur/SlicerWebSub/releases/tag/spa-clients)
-   (`spa-<folder>.zip`) and extracted into `hub/<folder>/`.
-4. If the hub was already running, confirm the restart prompt so mounts reload.
+1. Expand **Hub** and click **How to install SPAs…** for the path and release link.
+2. Download [`spa-clients.zip`](https://github.com/mbellehumeur/SlicerWebSub/releases/tag/spa-clients)
+   from the floating GitHub Release.
+3. Extract the zip into the local `hub/` folder (zip root has folder names such as
+   `worklist-client/`, `OHIF-client/`, …).
+4. Restart the hub if it was already running so mounts reload.
 
 ### Maintainers (publish release assets)
 
@@ -47,10 +45,10 @@ SPA trees stay out of git. Publish or refresh the `spa-clients` release:
 ```bash
 # after build_all_clients (or prepare_spa_release.py for light SPAs)
 python hub/scripts/pack_spa_release_assets.py --output-dir spa-release
-gh release create spa-clients spa-release/*.zip --title "Hub SPA clients" \
-  --notes "Hub SPA trees for the Slicer Qt download button."
+gh release create spa-clients spa-release/spa-clients.zip --title "Hub SPA clients" \
+  --notes "Hub SPA trees: download spa-clients.zip and extract into hub/."
 # refresh later:
-gh release upload spa-clients spa-release/*.zip --clobber
+gh release upload spa-clients spa-release/spa-clients.zip --clobber
 ```
 
 Tracked helpers: [`scripts/build_all_clients.py`](scripts/build_all_clients.py),
