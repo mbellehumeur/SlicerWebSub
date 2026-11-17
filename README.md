@@ -38,7 +38,7 @@ client.onMessage((message) => {
   if (event === 'imagingstudy-open' || event === 'imagingstudy-close') {
     // 1. Process open / close (load or clear the study)
   } else if (event === 'status-request') {
-    // 2. Respond to status-request (e.g. SceneViews / current context)
+    // 2. Respond to status-request (e.g. SceneViews / current context, priors viewed, tool in use, ect.)
   } else if (event === 'scene-update') {
     // 3. Update the scene during conferencing
   }
