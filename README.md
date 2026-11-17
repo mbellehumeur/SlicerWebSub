@@ -131,6 +131,10 @@ Here is an example of its use:
 
 For inference / evidence-creator workers see [SlicerWebSub-workers](https://github.com/mbellehumeur/SlicerWebSub-workers).
 
+<p align="center">
+  <img src="WebSubInterface/docs/images/worker_control.png" alt="Worker control" width="80%">
+</p>
+
 ## Installation
 
 ### Install from the 3D Slicer Extension Manager
@@ -197,19 +201,41 @@ Slicer WebSub is distributed under the [MIT License](LICENSE.txt).
 
 **Imaging Data Commons** — cloud-based repository of publicly available cancer imaging data from the [National Cancer Institute](https://imaging.datacommons.cancer.gov/). Slicer WebSub uses IDC as a read-only image archive and for worklist / Slim demos.
 
-**TotalSegmentator** was created by the Department of Research and Analysis at University Hospital Basel. If you use it, please cite our Radiology: Artificial Intelligence paper ([free preprint](https://arxiv.org/abs/2208.05868)). If you use it for MR images, please cite the TotalSegmentator MRI *Radiology* paper ([free preprint](https://arxiv.org/abs/2405.19492)).
+**TotalSegmentator** was created by the Department of Research and Analysis at University Hospital Basel. If you use it, please cite the Radiology: Artificial Intelligence paper ([DOI](https://doi.org/10.1148/ryai.230024), [free preprint](https://arxiv.org/abs/2208.05868)). If you use it for MR images, please cite the TotalSegmentator MRI *Radiology* paper ([DOI](https://doi.org/10.1148/radiol.241613), [free preprint](https://arxiv.org/abs/2405.19492)).
 
-**nnU-Net** — TotalSegmentator is heavily based on nnU-Net ([preprint](https://arxiv.org/abs/1809.10486)).
+**nnU-Net** — TotalSegmentator is heavily based on nnU-Net. Please cite: Isensee, F., Jaeger, P.F., Kohl, S.A.A. et al. "nnU-Net: a self-configuring method for deep learning-based biomedical image segmentation." Nat Methods (2020). https://doi.org/10.1038/s41592-020-01008-z
 
 **IDC Claude** — builds custom worklists from natural-language queries against the [Imaging Data Commons](https://portal.imaging.datacommons.cancer.gov/) (National Cancer Institute) using Anthropic Claude. Query guidance follows the [IDC skill](https://github.com/ImagingDataCommons/imaging-data-commons-skill).
 
-**idc-index** — official [Imaging Data Commons](https://github.com/ImagingDataCommons/idc-index) Python package for local DuckDB SQL against IDC metadata and DICOM series download URLs; used by the IDC Claude service provider. If you use it in research, cite Fedorov A, et al., *Radiographics* ([2023](https://doi.org/10.1148/rg.230180)).
+**idc-index** — official [Imaging Data Commons](https://github.com/ImagingDataCommons/idc-index) Python package for local DuckDB SQL against IDC metadata and DICOM series download URLs; used by the IDC Claude service provider. See Citations below for the IDC / idc-index paper.
 
 **OHIF** — open-source zero-footprint viewer from the [Open Health Imaging Foundation](https://ohif.org/).
 
 **Slim** — interoperable slide microscopy viewer from the [Imaging Data Commons](https://github.com/ImagingDataCommons/slim) (National Cancer Institute).
 
 **SlicerLive** — experimental WebGPU live 3D Slicer scenes in the browser from [SlicerLive](https://github.com/pieper/SlicerLive/); used for IRA / slicer-mirror demos served from the hub.
+
+## Citations
+
+Cite these when using Slicer WebSub with the corresponding platform or worker.
+
+### Platform
+
+- **3D Slicer** — Fedorov A, Beichel R, Kalpathy-Cramer J, et al. 3D Slicer as an Image Computing Platform for the Quantitative Imaging Network. Magn Reson Imaging. 2012;30(9):1323–1341. https://doi.org/10.1016/j.mri.2012.05.001
+- **Imaging Data Commons (IDC)** — Fedorov A, Longabaugh WJR, Pot D, et al. National Cancer Institute Imaging Data Commons: Toward Transparency, Reproducibility, and Scalability in Imaging Artificial Intelligence. RadioGraphics. 2023;43(12):e230180. https://doi.org/10.1148/rg.230180 (also covers idc-index research use)
+- **SlicerLive** — Pieper S. SlicerLive. https://github.com/pieper/SlicerLive (no journal paper yet; used for IRA / slicer-mirror demos)
+
+### Inference / evidence creators
+
+- **nnU-Net** — Isensee, F., Jaeger, P.F., Kohl, S.A.A. et al. "nnU-Net: a self-configuring method for deep learning-based biomedical image segmentation." Nat Methods (2020). https://doi.org/10.1038/s41592-020-01008-z (TotalSegmentator, DentalSegmentator, EUCAIM, and nnU-Net-based MHub models)
+- **TotalSegmentator (CT)** — Wasserthal J, Breit HC, Meyer MT, et al. TotalSegmentator: Robust Segmentation of 104 Anatomic Structures in CT Images. Radiol Artif Intell. 2023;5(5):e230024. https://doi.org/10.1148/ryai.230024
+- **TotalSegmentator (MRI)** — Akinci D'Antonoli T, Berger LK, Indrakanti AK, et al. TotalSegmentator MRI: Robust Sequence-independent Segmentation of Multiple Anatomic Structures in MRI. Radiology. 2025;314(2):e241613. https://doi.org/10.1148/radiol.241613
+- **DentalSegmentator** — Dot G, et al. DentalSegmentator: robust open source deep learning-based CT and CBCT image segmentation. Journal of Dentistry. 2024;147:105130. https://doi.org/10.1016/j.jdent.2024.105130 (also cite nnU-Net)
+- **TorchXRayVision** — Cohen JP, Viviano JD, Bertin P, et al. TorchXRayVision: A library of chest X-ray datasets and models. Proceedings of The 5th International Conference on Medical Imaging with Deep Learning (MIDL), PMLR 172:231–249, 2022. https://proceedings.mlr.press/v172/cohen22a.html
+- **FleXray** — Butoi VI, Gopalakrishnan V, Guttag JV, Dalca AV, Dey N. FleXray: Universal Clinical X-ray Segmentation. arXiv:2609.26756. https://arxiv.org/abs/2609.26756
+- **Vox2SegLAM** — Rekik et al. Automatic Landmark-Based Segmentation of Human Subcortical Structures in MRI. arXiv:2605.14221. https://arxiv.org/abs/2605.14221
+
+Individual [MHub.ai](https://mhub.ai) model citations are listed on each model page and in FHIR Device resources under `SlicerWebSub-workers/omi/fhir/Device/`.
 
 ## Standards and trademarks
 
