@@ -15,18 +15,18 @@ HUBINTERFACE_ROOT = Path(__file__).resolve().parents[3]
 
 
 def bootstrap_hubinterface_paths() -> Path:
-    """Put python_client, Lib, and image_display/lib on sys.path."""
+    """Append python_client, Lib, and image_display/lib to sys.path (tests only)."""
     roots = (
-        HUBINTERFACE_ROOT,
+        HUBINTERFACE_ROOT,  # ``from Lib…``
         HUBINTERFACE_ROOT / "python_client" / "src",
-        HUBINTERFACE_ROOT / "Lib",
+        HUBINTERFACE_ROOT / "Lib",  # ``from hub_presets``
         HUBINTERFACE_ROOT / "image_display" / "lib",
         Path(__file__).resolve().parents[1],  # Testing/Python
     )
     for root in roots:
         text = str(root)
         if root.is_dir() and text not in sys.path:
-            sys.path.insert(0, text)
+            sys.path.append(text)
     return HUBINTERFACE_ROOT
 
 

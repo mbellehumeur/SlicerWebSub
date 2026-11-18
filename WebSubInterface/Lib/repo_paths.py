@@ -21,17 +21,22 @@ def repo_root() -> Path:
 
 
 def ensure_monorepo_import_paths() -> Path:
-    """Add python_client, service-provider runtime, and image-display lib to sys.path."""
+    """Append hub_client and image_display lib dirs to ``sys.path``.
+
+    Call when opening the WebSubInterface module UI (or Connect/Start), not during
+    Slicer scripted-module discovery. Does not add the module root (Slicer already
+    exposes ``Lib``) and appends rather than prepending so other extensions are not
+    shadowed.
+    """
     root = repo_root()
     extras = (
-        root,
         root / "python_client" / "src",
         root / "image_display" / "lib",
     )
     for path in extras:
         s = str(path)
         if path.is_dir() and s not in sys.path:
-            sys.path.insert(0, s)
+            sys.path.append(s)
     return root
 
 
@@ -41,5 +46,3 @@ def hub_dir() -> Path:
 
 def hub_script() -> Path:
     return hub_dir() / "hub.py"
-
-

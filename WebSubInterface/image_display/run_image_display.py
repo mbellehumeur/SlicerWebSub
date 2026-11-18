@@ -17,6 +17,7 @@ from typing import Any, Callable, Dict, Optional
 
 def _bootstrap_paths() -> None:
     module_root = Path(__file__).resolve().parents[1]
+    # module_root: ``from Lib…``; other dirs: hub_client + flat image_display modules.
     for extra in (
         module_root,
         module_root / "python_client" / "src",
@@ -24,7 +25,7 @@ def _bootstrap_paths() -> None:
     ):
         s = str(extra)
         if extra.is_dir() and s not in sys.path:
-            sys.path.insert(0, s)
+            sys.path.append(s)
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -82,11 +82,15 @@ subscriber IANA timezone from `client_info`, or empty when unknown).
 ```
 
 `hostTopic` is required (legacy `user` is accepted). `title` is required. Attendee
-topics are deduplicated; the host topic is never stored in `topics[]`.
+topics in the body are stored as `invitedTopics` (invite notify only); membership
+`topics[]` starts empty until each attendee `PATCH /api/hub/conference/join`s.
+By default join requires `joinTopic` to be on that invite list (or already a
+member). Set `HUB_DANGEROUSLY_ALLOW_UNINVITED_CONFERENCE_JOIN=1` for open join
+(demo only; Bearer and OIDC topic bind still apply).
 
 Response: `{"status": "created", "conference": { ... }}`.
 
-On success the hub appends the record, sends `conference-start` to all participant
+On success the hub appends the record, sends `conference-start` to host + invitee
 WebSockets, and bumps the admin dashboard revision.
 
 ### End or leave conference

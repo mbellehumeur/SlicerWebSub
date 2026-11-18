@@ -85,6 +85,21 @@ def main() -> int:
     if "invite_topics" not in src or "notify_topics" not in src:
         print("FAIL: create missing invite notify fan-out")
         return 1
+    if '"invitedTopics"' not in src and "'invitedTopics'" not in src:
+        print("FAIL: create does not persist invitedTopics")
+        return 1
+    if "HUB_DANGEROUSLY_ALLOW_UNINVITED_CONFERENCE_JOIN" not in src:
+        print("FAIL: join path missing uninvited-join gate flag")
+        return 1
+
+    import env as hub_env
+
+    if not hasattr(hub_env, "HUB_DANGEROUSLY_ALLOW_UNINVITED_CONFERENCE_JOIN"):
+        print("FAIL: env flag missing")
+        return 1
+    if hub_env.HUB_DANGEROUSLY_ALLOW_UNINVITED_CONFERENCE_JOIN is not False:
+        print("FAIL: uninvited-join flag must default False")
+        return 1
 
     print("OK conference membership topic gates")
     return 0

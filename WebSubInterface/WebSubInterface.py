@@ -2,10 +2,6 @@
 
 from __future__ import annotations
 
-from Lib.repo_paths import ensure_monorepo_import_paths
-
-ensure_monorepo_import_paths()
-
 import ctk
 
 from slicer.i18n import tr as _
@@ -13,9 +9,6 @@ from slicer.ScriptedLoadableModule import (
     ScriptedLoadableModule,
     ScriptedLoadableModuleWidget,
 )
-
-from Lib.HubServer import HubServerWidget
-from Lib.ImageDisplayClient import ImageDisplayClientWidget
 
 
 class WebSubInterface(ScriptedLoadableModule):
@@ -122,6 +115,13 @@ class WebSubInterface(ScriptedLoadableModule):
 class WebSubInterfaceWidget(ScriptedLoadableModuleWidget):
     def __init__(self, parent=None) -> None:
         ScriptedLoadableModuleWidget.__init__(self, parent)
+        # Path setup + heavy imports only when the user opens this module.
+        from Lib.repo_paths import ensure_monorepo_import_paths
+
+        ensure_monorepo_import_paths()
+        from Lib.HubServer import HubServerWidget
+        from Lib.ImageDisplayClient import ImageDisplayClientWidget
+
         self.imageDisplayClientWidget = ImageDisplayClientWidget()
         self.hubWidget = HubServerWidget()
 

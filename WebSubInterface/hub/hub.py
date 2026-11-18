@@ -101,6 +101,7 @@ except ImportError:
     sys.exit(1)
 
 from env import (
+    HUB_DANGEROUSLY_ALLOW_UNINVITED_CONFERENCE_JOIN,
     HUB_HTTP_PAYLOAD_MAX_TOTAL_BYTES,
     HUB_HTTP_PAYLOAD_TTL_SECONDS,
     HUB_UVICORN_WS_PING_INTERVAL,
@@ -297,6 +298,13 @@ def main():
         print("  Admin APIs: gated by HUB_ADMIN_TOKEN (X-Hub-Admin-Token / ?admin_token=)")
     else:
         print("  Admin APIs: HUB_ADMIN_TOKEN unset (admin routes fail closed)")
+    if HUB_DANGEROUSLY_ALLOW_UNINVITED_CONFERENCE_JOIN:
+        print(
+            "  WARNING: HUB_DANGEROUSLY_ALLOW_UNINVITED_CONFERENCE_JOIN=1 "
+            "(any authenticated topic may join a known conference)"
+        )
+    else:
+        print("  Conference join: invite-gated (invitedTopics)")
     print("")
     print(f"WebSocket connections: ws://{args.host}:{args.port}/bind/<endpoint>")
     print("")

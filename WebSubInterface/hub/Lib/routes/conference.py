@@ -14,6 +14,7 @@ from conference_logic import (
     _normalize_conference_topics,
     _send_conference_hub_event,
 )
+from env import HUB_DANGEROUSLY_ALLOW_UNINVITED_CONFERENCE_JOIN
 from http_util import (
     _enforce_bearer_auth,
     _enforce_topic_match,
@@ -114,6 +115,7 @@ async def post_conference(request: Request):
         "sceneLeaderTopic": host_topic,
         "title": title,
         "topics": [],
+        "invitedTopics": list(invite_topics),
     }
     hub.conferences.append(conference)
     hub.log(
@@ -180,6 +182,20 @@ async def patch_conference_join(request: Request):
         raise HTTPException(status_code=404, detail="Conference not found")
 
     topics = _normalize_conference_topics(match.get("topics", []))
+    invited = _normalize_conference_topics(match.get("invitedTopics", []))
+    if (
+        not HUB_DANGEROUSLY_ALLOW_UNINVITED_CONFERENCE_JOIN
+        and join_topic not in topics
+        and join_topic not in invited
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "joinTopic was not invited to this conference "
+                "(set HUB_DANGEROUSLY_ALLOW_UNINVITED_CONFERENCE_JOIN=1 to allow)"
+            ),
+        )
+
     if join_topic not in topics:
         topics.append(join_topic)
         match["topics"] = topics

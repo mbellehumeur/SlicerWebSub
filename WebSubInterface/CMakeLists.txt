@@ -46,6 +46,13 @@ set(_HUB_INSTALL_EXCLUDES
   PATTERN "deploy" EXCLUDE
   PATTERN "samples" EXCLUDE
   PATTERN "slicer-hub.zip" EXCLUDE
+  PATTERN "nifti" EXCLUDE
+  PATTERN "worklist-client" EXCLUDE
+  PATTERN "reporting-client" EXCLUDE
+  PATTERN "classroom-client" EXCLUDE
+  PATTERN "slicerlive" EXCLUDE
+  PATTERN "slicer-mirror" EXCLUDE
+  PATTERN "website" EXCLUDE
   )
 
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/hub/"

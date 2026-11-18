@@ -924,16 +924,6 @@
             max-height: 85vh;
             overflow-y: auto;
         }
-        .about-dialog .about-banner-wrap {
-            margin: -30px -30px 16px;
-            overflow: hidden;
-            border-radius: 8px 8px 0 0;
-        }
-        .about-dialog .about-banner {
-            display: block;
-            width: 100%;
-            height: auto;
-        }
         .about-dialog .about-header-text h3 {
             margin: 0;
         }
@@ -2479,10 +2469,6 @@
                 <p><strong>Slicer WebSub is not part of these standards.</strong> It is not published by NEMA, HL7, or HIMSS, and is not an IHE Integration Profile, a FHIR implementation guide, or a DICOM conformance statement. Use of standard names and terms does not imply endorsement, certification, or official status. All other product and company names are trademarks of their respective owners.</p>
             </div>`;
 
-        function aboutBannerSrc() {
-            return '/static/images/banner.jpg';
-        }
-
         function buildAuthenticationsTableHtml(list) {
             const rows = Array.isArray(list) ? list : [];
             if (!rows.length) {
@@ -2599,10 +2585,6 @@
             dialog.setAttribute('role', 'dialog');
             dialog.setAttribute('aria-labelledby', 'aboutHubTitle');
             dialog.innerHTML = `
-                <div class="about-banner-wrap">
-                    <img class="about-banner" src="${escapeHtml(aboutBannerSrc())}"
-                         alt="${escapeHtml(aboutName)}">
-                </div>
                 <div class="about-header-text">
                     <h3 id="aboutHubTitle">About ${escapeHtml(aboutName)}</h3>
                 </div>

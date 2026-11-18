@@ -273,7 +273,8 @@ def _load_downloaded_dicom_study(
     parent_dir = os.path.commonpath(dicom_paths) if dicom_paths else temp_dir
     if not os.path.isdir(parent_dir):
         parent_dir = temp_dir
-    DICOMUtils.importDicom(parent_dir, copyFiles=False)
+    # Copy into the DICOM DB so clear_loaded_study can delete temp_dir safely.
+    DICOMUtils.importDicom(parent_dir, copyFiles=True)
 
     loaded_node_ids = _load_dicom_paths(dicom_paths)
     if not loaded_node_ids:

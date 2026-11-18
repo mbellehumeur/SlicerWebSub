@@ -40,6 +40,13 @@ HUB_WS_KEEPALIVE_INTERVAL_SECONDS = float(
     os.getenv("HUB_WS_KEEPALIVE_INTERVAL_SECONDS", "30")
 )
 
+# Default: PATCH /conference/join requires joinTopic in the conference's
+# invitedTopics (or already a member). Set to allow any authenticated topic to
+# join a known hostTopic (demo/classroom only).
+HUB_DANGEROUSLY_ALLOW_UNINVITED_CONFERENCE_JOIN = _env_flag(
+    "HUB_DANGEROUSLY_ALLOW_UNINVITED_CONFERENCE_JOIN", default=False
+)
+
 
 def _env_optional_float(name: str) -> Optional[float]:
     raw = os.getenv(name)
