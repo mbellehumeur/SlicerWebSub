@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import asyncio
+import hmac
 import logging
+import secrets
 import webbrowser
 from typing import Any, Dict, Optional
 from urllib.parse import urlencode
@@ -27,12 +29,16 @@ async def capture_loopback_query_params(
     hub_auth: str = "oidc",
     waiting_text: str = "Waiting for hub login…",
     on_listening: Optional[Any] = None,
+    client_state: Optional[str] = None,
 ) -> Dict[str, str]:
     """Bind ``127.0.0.1:0``, call ``on_listening(return_to)``, wait for query callback.
 
     Completes when the callback includes ``access_token`` and matching ``hub_auth``.
+    When ``client_state`` is set, the callback must also echo the same
+    ``client_state`` (CSRF bind for native OIDC loopback).
     """
     expected_auth = str(hub_auth or "").strip().lower() or "oidc"
+    expected_state = str(client_state or "").strip()
     loop = asyncio.get_running_loop()
     result_future: asyncio.Future[Dict[str, str]] = loop.create_future()
 
@@ -45,6 +51,10 @@ async def capture_loopback_query_params(
         )
         if not auth_ok or not access:
             return web.Response(text=waiting_text, content_type="text/plain")
+        if expected_state:
+            got_state = str(params.get("client_state") or "").strip()
+            if not got_state or not hmac.compare_digest(got_state, expected_state):
+                return web.Response(text=waiting_text, content_type="text/plain")
         if not result_future.done():
             result_future.set_result(params)
         return web.Response(text=_SUCCESS_HTML, content_type="text/html")
@@ -81,6 +91,7 @@ def capture_loopback_query_params_sync(
     hub_auth: str = "worklist",
     waiting_text: str = "Waiting for worklist credentials…",
     on_listening: Optional[Any] = None,
+    client_state: Optional[str] = None,
 ) -> Dict[str, str]:
     """Sync wrapper for :func:`capture_loopback_query_params` (Qt / desktop)."""
     return asyncio.run(
@@ -89,6 +100,7 @@ def capture_loopback_query_params_sync(
             hub_auth=hub_auth,
             waiting_text=waiting_text,
             on_listening=on_listening,
+            client_state=client_state,
         )
     )
 
@@ -102,15 +114,18 @@ async def capture_hub_oidc_tokens(
     """Open hub ``/oauth/login`` with ``response_mode=query`` and capture tokens.
 
     ``login_url`` should already be the hub login endpoint (no query), e.g.
-    ``https://host/oauth/login``. This function appends ``return_to`` and
-    ``response_mode=query``.
+    ``https://host/oauth/login``. This function appends ``return_to``,
+    ``response_mode=query``, and a one-time ``client_state`` that the hub must
+    echo on the loopback redirect.
     """
+    client_state = secrets.token_urlsafe(24)
 
     def _open_login(return_to: str) -> None:
         query = urlencode(
             {
                 "return_to": return_to,
                 "response_mode": "query",
+                "client_state": client_state,
             }
         )
         full_login = f"{login_url.rstrip('/')}?{query}"
@@ -130,6 +145,7 @@ async def capture_hub_oidc_tokens(
         hub_auth="oidc",
         waiting_text="Waiting for hub OIDC login…",
         on_listening=_open_login,
+        client_state=client_state,
     )
 
 

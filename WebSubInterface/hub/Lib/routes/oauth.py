@@ -46,6 +46,23 @@ router = APIRouter()
 
 JWT_EXPIRY_SECONDS = int(os.environ.get("HUB_JWT_EXPIRY_SECONDS", "3600"))
 _OIDC_STATE_TTL_SECONDS = 600
+_CLIENT_STATE_MAX_LEN = 128
+
+
+def _normalize_client_state(raw: str) -> str:
+    """Optional native-loopback CSRF token echoed on return_to redirect."""
+    value = str(raw or "").strip()
+    if not value:
+        return ""
+    if len(value) > _CLIENT_STATE_MAX_LEN:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "invalid_client_state",
+                "error_description": f"client_state must be at most {_CLIENT_STATE_MAX_LEN} characters",
+            },
+        )
+    return value
 
 
 def _issue_jwt_pair(
@@ -428,12 +445,15 @@ async def oauth_login(
     request: Request,
     return_to: str = "",
     response_mode: str = "",
+    client_state: str = "",
 ):
     """Login entrypoint for both auth modes.
 
     Mock: return hub session tokens as JSON (no browser redirect).
     OIDC: browser redirect to IdP; ``response_mode=query`` puts tokens on
     ``return_to`` as a query string (native loopback). Default is fragment (SPAs).
+    Optional ``client_state`` is stored and echoed on the return_to redirect so
+    native loopback listeners can bind the callback to the login they started.
     """
     if HUB_AUTH_MODE == "mock":
         return await _mock_oauth_login(request)
@@ -475,16 +495,20 @@ async def oauth_login(
             },
         )
     delivery = "query" if mode == "query" else "fragment"
+    pending_client_state = _normalize_client_state(client_state)
 
     _purge_expired_oidc_states()
     state = secrets.token_urlsafe(24)
     code_verifier = secrets.token_urlsafe(64)
-    hub.oidc_login_states[state] = {
+    pending: Dict[str, Any] = {
         "code_verifier": code_verifier,
         "return_to": _safe_return_to(return_to, request),
         "response_mode": delivery,
         "expires_at": time.time() + _OIDC_STATE_TTL_SECONDS,
     }
+    if pending_client_state:
+        pending["client_state"] = pending_client_state
+    hub.oidc_login_states[state] = pending
 
     params = {
         "client_id": HUB_OIDC_CLIENT_ID,
@@ -587,17 +611,19 @@ async def oauth_callback(
     session = _mint_hub_session(identity["user_name"], identity["topic"])
     await hub.send_admin_refresh_command()
 
-    token_params = urlencode(
-        {
-            "access_token": session["access_token"],
-            "id_token": session["id_token"],
-            "token_type": "Bearer",
-            "expires_in": str(session["expires_in"]),
-            "topic": session["topic"],
-            "user_name": session["user_name"],
-            "hub_auth": "oidc",
-        }
-    )
+    redirect_params: Dict[str, str] = {
+        "access_token": session["access_token"],
+        "id_token": session["id_token"],
+        "token_type": "Bearer",
+        "expires_in": str(session["expires_in"]),
+        "topic": session["topic"],
+        "user_name": session["user_name"],
+        "hub_auth": "oidc",
+    }
+    echoed_client_state = str(pending.get("client_state") or "").strip()
+    if echoed_client_state:
+        redirect_params["client_state"] = echoed_client_state
+    token_params = urlencode(redirect_params)
     return_to = str(pending.get("return_to") or "").strip() or _safe_return_to("", request)
     # Strip any existing fragment / query before appending ours.
     return_to = return_to.split("#", 1)[0].split("?", 1)[0]

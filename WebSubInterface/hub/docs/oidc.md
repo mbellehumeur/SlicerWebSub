@@ -20,6 +20,10 @@ The hub supports two auth modes via `HUB_AUTH_MODE`:
 Slicer default preset `SLICER-HUB-CLOUD-OIDC` targets the OIDC host (OIDC checkbox on).
 `SLICER-HUB-CLOUD` targets the mock-login hub and is demo-only (anyone can mint any topic).
 
+Native desktop clients use `response_mode=query` with a loopback `return_to`. They send a one-time
+`client_state` on `/oauth/login`; the hub stores it with the IdP login and echoes it on the
+return_to redirect so the loopback listener only accepts the matching callback.
+
 ## Environment
 
 ```bash
