@@ -1,6 +1,6 @@
 # Slicer WebSub (`hub`)
 
-FastAPI implementation of a [FHIRcast](https://fhircast.org/)-style hub for the Slicer WebSub stack (`@slicer-hub/client`, OHIF hub extension, Slicer Image Display / service providers). Subscribers connect over WebSocket (`/bind/{endpoint}`) or WebSub callbacks; the hub fans out events and collates typed request/response traffic.
+FastAPI implementation of a [FHIRcast](https://fhircast.org/)-style hub for the Slicer WebSub stack (`@slicer-hub/client`, OHIF hub extension, Slicer Image Display / service providers). Subscribers connect over **WebSocket only** (`hub.channel.type=websocket`, then `/bind/{endpoint}`). Classic HTTP server-callback WebSub is **not** supported in this version; the hub fans out events and collates typed request/response traffic over bound sockets.
 
 Run standalone:
 
@@ -90,7 +90,7 @@ sequenceDiagram
 
 ## Publish flow
 
-A publisher sends a Hub notification to the hub. The hub matches **topic + event type** against each subscription, skips echo to the publisher (`subscriber.name` on the envelope), and delivers to WebSocket or WebSub subscribers. Conference participants may receive an extra copy when the message topic matches an active conference.
+A publisher sends a Hub notification to the hub. The hub matches **topic + event type** against each subscription, skips echo to the publisher (`subscriber.name` on the envelope), and delivers to bound **WebSocket** subscribers. Conference participants may receive an extra copy when the message topic matches an active conference.
 
 **Entry point:** `POST /api/hub/` or `POST /api/hub` (body contains `event` with `event.hub.topic`).
 
@@ -100,7 +100,6 @@ sequenceDiagram
     participant Hub as hub Hub
     participant SubA as Subscriber A WS
     participant SubB as Subscriber B WS
-    participant WebSub as WebSub callback
     participant Admin as Admin clients
 
     Publisher->>Hub: POST /api/hub/
@@ -109,14 +108,10 @@ sequenceDiagram
     Hub->>Hub: _handle_publish_notification
     Hub->>Hub: update last_context, audit received
 
-    loop Each matching subscription
-        alt channel = websocket and bound
-            Hub->>SubA: send_text(notification JSON)
-            Note over Hub,SubA: dicom-send: text frame + binary bytes
-            Hub->>Hub: audit sent
-        else channel = websub
-            Hub->>WebSub: POST callback + X-Hub-Signature
-        end
+    loop Each matching websocket subscription
+        Hub->>SubA: send_text(notification JSON)
+        Note over Hub,SubA: dicom-send: text frame + binary bytes
+        Hub->>Hub: audit sent
     end
 
     opt Message from conference participant
@@ -266,7 +261,7 @@ Each item in `responses` is one subscriber's `<datatype>-response` payload. The 
 - **HTTP:** `GET /api/hub/admin/snapshot` — full state for the UI (subscription `secret` omitted). Always gated by `HUB_ADMIN_TOKEN`.
 - **WebSocket:** `WS /ws/admin` — lightweight `admin.refresh` with `revision`; the page reloads snapshot when revision changes. Pass `?admin_token=` when gated.
 - **Reset:** `POST /api/admin/reset` — clears subscriptions, audit, conferences, auth codes; optional `single_user_mode`. Same admin gate as snapshot.
-- **Unsubscribe only:** `DELETE /api/hub` with `hub.channel.endpoint` and/or `hub.callback`+`hub.topic`. Empty DELETE no longer clears all subscriptions.
+- **Unsubscribe only:** `DELETE /api/hub` with `hub.channel.endpoint` (and optionally `hub.topic`). Empty DELETE no longer clears all subscriptions.
 
 ---
 

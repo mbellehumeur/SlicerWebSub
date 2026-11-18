@@ -94,7 +94,7 @@ The extension features a hub and the Image Display client (3D Slicer Qt viewer +
 
 ### Hub
 
-The hub is a stateless routing appliance that distributes messages and handles data transfer requests over the websocket and http to each client.
+The hub is a stateless routing appliance that distributes messages and handles data transfer requests over WebSocket to each client.
 
 <p align="center">
   <img src="WebSubInterface/docs/images/hub-ui.png" alt="Hub UI" width="80%">

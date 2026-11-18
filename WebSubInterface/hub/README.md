@@ -1,6 +1,9 @@
 # Slicer WebSub (`hub`)
 
-FastAPI Hub / FHIRcast hub. Run standalone:
+FastAPI Hub / FHIRcast hub. **This version supports WebSocket subscriptions only**
+(`hub.channel.type=websocket` → `/bind/{endpoint}`). HTTP server-callback WebSub is not supported.
+
+Run standalone:
 
 ```bash
 pip install -e ../python_client

@@ -28,7 +28,8 @@ slicerMacroBuildScriptedModule(
 
 #-----------------------------------------------------------------------------
 if(BUILD_TESTING)
-  slicer_add_python_unittest(SCRIPT WebSubInterface.py)
+  # No ScriptedLoadableModuleTest on WebSubInterface.py; hub tests live under
+  # Testing/Python and are run outside Slicer CTest for now.
   add_subdirectory(Testing)
 endif()
 
@@ -53,6 +54,10 @@ set(_HUB_INSTALL_EXCLUDES
   PATTERN "slicerlive" EXCLUDE
   PATTERN "slicer-mirror" EXCLUDE
   PATTERN "website" EXCLUDE
+  PATTERN "scripts" EXCLUDE
+  PATTERN "Dockerfile*" EXCLUDE
+  PATTERN "make_zip.py" EXCLUDE
+  PATTERN "deploy*.sh" EXCLUDE
   )
 
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/hub/"

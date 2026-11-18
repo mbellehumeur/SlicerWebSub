@@ -220,22 +220,19 @@ class Hub:
                 client_info["productName"] = subscriber_product
             if subscriber_version:
                 client_info["version"] = subscriber_version
-        channel_type = subscription_data.get("hub.channel.type", subscription_data.get("hub_channel_type", "websub"))
+        # Default websocket: HTTP server-callback (classic WebSub) is not supported.
+        channel_type = subscription_data.get(
+            "hub.channel.type", subscription_data.get("hub_channel_type", "websocket")
+        )
         channel_endpoint = subscription_data.get("hub.channel.endpoint", subscription_data.get("hub_channel_endpoint", ""))
         host = subscription_data.get("host", subscription_data.get("Host", ""))
 
         if hub_mode == "subscribe":
-            # Verify subscription request for WebSub
-            if channel_type != "websocket":
-                verify_result = self.check_subscription_request({
-                    "hub.callback": hub_callback,
-                    "hub.secret": hub_secret,
-                    "hub.topic": hub_topic
-                })
-                
-                if verify_result["status"] != 200:
-                    self.log(f"WebSub verification failed: {verify_result['status']}")
-                    raise ValueError("WebSub verification failed")
+            if str(channel_type).strip().lower() != "websocket":
+                raise ValueError(
+                    "Only WebSocket subscriptions are supported "
+                    "(hub.channel.type=websocket). HTTP server callbacks are not supported."
+                )
             
             # Generate WebSocket endpoint identifier
             websocket_endpoint = str(uuid.uuid4())
