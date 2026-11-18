@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Offline asserts for Zip Slip rejection in image_display_client_load."""
+"""Offline asserts for Zip Slip rejection and size/count caps."""
 
 from __future__ import annotations
 
@@ -43,6 +43,36 @@ def main() -> int:
             return 1
         except RuntimeError as exc:
             if "Unsafe zip path" not in str(exc):
+                print(f"FAIL: unexpected error: {exc}")
+                return 1
+
+        many_buf = io.BytesIO()
+        with zipfile.ZipFile(many_buf, "w") as zf:
+            for i in range(5):
+                zf.writestr(f"f{i}.dcm", b"x")
+        many_buf.seek(0)
+        try:
+            with zipfile.ZipFile(many_buf, "r") as zf:
+                safe_extract_zip(zf, dest / "many", max_members=3)
+            print("FAIL: expected too-many-members rejection")
+            return 1
+        except RuntimeError as exc:
+            if "too many members" not in str(exc):
+                print(f"FAIL: unexpected error: {exc}")
+                return 1
+
+        big_buf = io.BytesIO()
+        with zipfile.ZipFile(big_buf, "w") as zf:
+            zf.writestr("big.dcm", b"abcdefghij")
+        big_buf.seek(0)
+        try:
+            with zipfile.ZipFile(big_buf, "r") as zf:
+                safe_extract_zip(zf, dest / "big", max_total_bytes=5)
+            print("FAIL: expected size-limit rejection")
+            return 1
+        except RuntimeError as exc:
+            msg = str(exc)
+            if "too large" not in msg and "exceeded size limit" not in msg:
                 print(f"FAIL: unexpected error: {exc}")
                 return 1
 

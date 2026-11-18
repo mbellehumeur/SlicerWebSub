@@ -46,8 +46,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--topic", default="USER-1", help="Hub topic")
     parser.add_argument(
         "--hub",
-        default="SLICER-HUB-CLOUD",
-        help="Hub preset name (SLICER-HUB or SLICER-HUB-CLOUD)",
+        default="SLICER-HUB-CLOUD-OIDC",
+        help="Hub preset name (SLICER-HUB, SLICER-HUB-CLOUD, SLICER-HUB-CLOUD-OIDC)",
     )
     parser.add_argument("--product-name", default=DISPLAY_PRODUCT_NAME)
     args = parser.parse_args(argv)

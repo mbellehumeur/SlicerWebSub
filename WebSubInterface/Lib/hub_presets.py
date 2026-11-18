@@ -16,7 +16,7 @@ from urllib.parse import urlencode, urljoin, urlparse
 _MOCK_CLIENT_SECRET = "client_secret_3d_Slicer"
 
 HUBS: Dict[str, Dict[str, Any]] = {
-    # Mock auth cloud hub (Fly bellehumeur-hub / apex).
+    # Mock auth cloud hub (Fly bellehumeur-hub / apex). Demo only: open topic mint.
     "SLICER-HUB-CLOUD": {
         "hub_endpoint": "https://bellehumeur-engineering.com/api/hub",
         "authorization_endpoint": "https://bellehumeur-engineering.com/oauth/login",
@@ -45,7 +45,8 @@ HUBS: Dict[str, Dict[str, Any]] = {
 }
 
 USER_NAME = "3dslicer-server"
-DEFAULT_HUB_NAME = "SLICER-HUB"
+# Default to OIDC cloud (real IdP topic bind). Mock cloud remains available.
+DEFAULT_HUB_NAME = "SLICER-HUB-CLOUD-OIDC"
 
 # Main-thread queue poll while Image Display is active.
 MAIN_QUEUE_TIMER_MS = 50

@@ -17,7 +17,8 @@ The hub supports two auth modes via `HUB_AUTH_MODE`:
 | **OIDC** (Auth0 login) | [https://oidc.bellehumeur-engineering.com/](https://oidc.bellehumeur-engineering.com/) — worklist: [/worklist-client/](https://oidc.bellehumeur-engineering.com/worklist-client/) |
 | **Mock** (no IdP; clients use `/oauth/login`) | [https://bellehumeur-engineering.com/](https://bellehumeur-engineering.com/) — worklist: [/worklist-client/](https://bellehumeur-engineering.com/worklist-client/) |
 
- Slicer preset `SLICER-HUB-CLOUD-OIDC` targets the OIDC host; `SLICER-HUB-CLOUD` targets the mock-login hub.
+Slicer default preset `SLICER-HUB-CLOUD-OIDC` targets the OIDC host (OIDC checkbox on).
+`SLICER-HUB-CLOUD` targets the mock-login hub and is demo-only (anyone can mint any topic).
 
 ## Environment
 

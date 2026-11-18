@@ -24,18 +24,22 @@ class WebSubInterface(ScriptedLoadableModule):
             Full product documentation:
             <a href="https://github.com/mbellehumeur/SlicerWebSub">SlicerWebSub README</a>.
             Detailed usage for the browser worklist is in the worklist <b>About</b> box.<br><br>
-            <b>Quick test — cloud</b><br>
-            1. In <b>Image Display Client</b>, select hub <code>SLICER-HUB-CLOUD</code>
-            (leave <b>OIDC</b> unchecked for the mock cloud hub).<br>
-            2. Click <b>Open worklist</b> (do not Connect yet). Log in in the browser if asked.<br>
-            3. Check the <b>user on the worklist conference icon</b>, enter that same value
-            in Image Display <b>User</b>, then click <b>Connect</b>.<br>
-            4. In the worklist, open a study from the DICOM database; Slicer should load it.<br>
-            5. Optional after Connect: <b>Start a conference</b> with another user
+            <b>Quick test — cloud (OIDC, default)</b><br>
+            1. In <b>Image Display Client</b>, use hub <code>SLICER-HUB-CLOUD-OIDC</code>
+            with <b>OIDC</b> checked (the module default).<br>
+            2. Click <b>Connect</b> and complete browser IdP login; <b>User</b> becomes your
+            email topic from the IdP.<br>
+            3. Click <b>Open worklist</b> (same OIDC session). Open a study from the DICOM
+            database; Slicer should load it.<br>
+            4. Optional after Connect: <b>Start a conference</b> with another user
             (see <b>Open another user</b> in the conference icon).
             Use the <b>SlicerLive</b> client <b>Scene</b> to control the attendee scene
             and vanishing ToolBrush.
             The <b>SlicerMirror</b> client can view the Qt viewer in sync.<br><br>
+            <b>Mock cloud (demo only)</b><br>
+            <code>SLICER-HUB-CLOUD</code> with <b>OIDC</b> unchecked uses open mock login
+            (anyone can mint any topic). Keep it for demos without real PHI; prefer OIDC
+            for shared or sensitive use.<br><br>
             <b>Quick test — local hub</b><br>
             1. Expand <b>Hub</b>. Click <b>How to install SPAs…</b>, download
             <code>spa-clients.zip</code> from the GitHub release, and extract it into
@@ -44,8 +48,9 @@ class WebSubInterface(ScriptedLoadableModule):
             2. Set <b>Port</b> (default 2018), click <b>Start</b> (listens on
             <code>127.0.0.1</code> only), then
             <b>Open Hub Portal</b> if you want the admin UI.<br>
-            3. In <b>Image Display Client</b>, select <code>SLICER-HUB</code>.<br>
-            4. Same as cloud: <b>Open worklist</b> → match conference-icon user in <b>User</b>
+            3. In <b>Image Display Client</b>, select <code>SLICER-HUB</code> and uncheck
+            <b>OIDC</b>.<br>
+            4. <b>Open worklist</b> → match conference-icon user in <b>User</b>
             → <b>Connect</b> → open a study from the worklist DICOM database into Slicer.<br><br>
             <b>Docker hub (optional)</b><br>
             Public images on GHCR:
@@ -53,9 +58,7 @@ class WebSubInterface(ScriptedLoadableModule):
             <code>:full</code> — same plus SPA mounts (worklist, OHIF, …).
             Use <b>full</b> for Open worklist against the container; use <b>slim</b> when you only need the API.
             Run / env examples (mock and OIDC):
-            <a href="https://github.com/mbellehumeur/SlicerWebSub/blob/main/WebSubInterface/hub/README.md">hub README — Docker</a>.<br><br>
-            For browser IdP login against the OIDC cloud hub, select
-            <code>SLICER-HUB-CLOUD-OIDC</code> and enable <b>OIDC</b>, then Connect.
+            <a href="https://github.com/mbellehumeur/SlicerWebSub/blob/main/WebSubInterface/hub/README.md">hub README — Docker</a>.
             """
         )
         self.parent.acknowledgementText = _(

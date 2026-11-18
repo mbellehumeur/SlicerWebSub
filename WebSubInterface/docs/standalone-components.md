@@ -41,7 +41,7 @@ python ../SlicerWebSub-workers/neuro_seg/neuro_seg.py --local
 python ../SlicerWebSub-workers/total_segmentator/total_segmentator.py --local
 ```
 
-`--local` uses `http://127.0.0.1:2018`. Default is cloud `SLICER-HUB-CLOUD`. Preset `client_secret` values are public mock placeholders (see `SlicerWebSub-workers/hub_presets.py`); do not put real IdP secrets there.
+`--local` uses `http://127.0.0.1:2018`. Default is OIDC cloud `SLICER-HUB-CLOUD-OIDC` (mock `SLICER-HUB-CLOUD` remains available for demos). Preset `client_secret` values are public mock placeholders (see `SlicerWebSub-workers/hub_presets.py`); do not put real IdP secrets there.
 
 Examples: `neuro_seg/neuro_seg.py`, `lung_screening/lung_screening.py`, `total_segmentator/total_segmentator.py` (`TOTALSEG`). TotalSeg also needs TotalSegmentator installed in the Python that runs inference—prefer a dedicated env, not Slicer’s module `pip_install`; see [total_segmentator/README.md](../../../SlicerWebSub-workers/total_segmentator/README.md). `torchxrayvision/torchxrayvision.py` (`TORCHXRAYVISION`) is currently a TotalSeg clone; see [torchxrayvision/README.md](../../../SlicerWebSub-workers/torchxrayvision/README.md).
 

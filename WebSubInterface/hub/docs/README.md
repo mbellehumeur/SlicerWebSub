@@ -336,8 +336,8 @@ python 3dslicer-hub-ai-interface.py
 
 | `HUB_NAME` | Hub |
 |------------|-----|
-| `SLICER-HUB-CLOUD` | Mock auth cloud (`bellehumeur-engineering.com`) |
-| `SLICER-HUB-CLOUD-OIDC` | OIDC cloud (`oidc.bellehumeur-engineering.com`) |
+| `SLICER-HUB-CLOUD-OIDC` | OIDC cloud (`oidc.bellehumeur-engineering.com`) — Slicer default |
+| `SLICER-HUB-CLOUD` | Mock auth cloud (`bellehumeur-engineering.com`) — demo only (open topic mint) |
 | `SLICER-HUB` | `http://localhost:2018/api/hub` |
 
 No local hub process is required when using a cloud `HUB_NAME`.

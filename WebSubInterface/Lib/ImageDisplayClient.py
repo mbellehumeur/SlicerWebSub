@@ -309,7 +309,7 @@ class ImageDisplayClientWidget:
 
     @classmethod
     def _initial_oidc_checked(cls, slicer_email: str = "") -> bool:
-        """Hub OIDC setting wins when present; else default on if Slicer email is set."""
+        """Hub OIDC setting wins when present; else default on (matches OIDC cloud hub)."""
         if cls._has_setting(_SETTINGS_KEY_OIDC):
             return cls._load_setting(_SETTINGS_KEY_OIDC, "").lower() in (
                 "1",
@@ -317,7 +317,7 @@ class ImageDisplayClientWidget:
                 "yes",
                 "on",
             )
-        return bool((slicer_email or cls._slicer_user_email()).strip())
+        return True
 
     @classmethod
     def _initial_topic_text(cls, *, oidc: bool, slicer_email: str = "") -> str:
