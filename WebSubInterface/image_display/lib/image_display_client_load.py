@@ -52,7 +52,7 @@ def _default_download_name(url: str, index: int) -> str:
 
 def _safe_local_name(name: str, index: int) -> str:
     cleaned = os.path.basename(str(name or "").strip())
-    if cleaned:
+    if cleaned and cleaned not in (".", ".."):
         return cleaned
     return f"hub-file-{index}"
 

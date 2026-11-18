@@ -402,8 +402,11 @@ class ImageDisplayClientWidget:
         self._refresh_status()
 
     def exit(self) -> None:
+        # Pause module-visible refresh, but keep draining hub UI callbacks
+        # while the connection is still up (leave module ≠ disconnect).
         self._main_queue_running = False
-        self._main_queue_timer.stop()
+        if not self._hub.isHubThreadRunning():
+            self._main_queue_timer.stop()
 
     def post_ui(self, fn: Callable[[], None]) -> None:
         self._main_queue.put(fn)
@@ -728,6 +731,9 @@ class ImageDisplayClientWidget:
                 self.connectButton.enabled = True
             self._set_hub_session_buttons_enabled(False)
             self._set_fields_enabled(True)
+            # Module may be closed (exit left timer running while hub was up).
+            if not self._main_queue_running:
+                self._main_queue_timer.stop()
         elif state == "error":
             self._apply_status_style("error")
             reason = detail.get("reason")
