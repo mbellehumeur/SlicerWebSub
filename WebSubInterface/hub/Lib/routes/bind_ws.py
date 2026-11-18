@@ -7,11 +7,12 @@ import json
 import logging
 from datetime import datetime
 
+from typing import Optional
+
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from hub_client import is_response_event
-from oauth_tokens import HUB_REQUIRE_AUTH
 
-from env import HUB_WS_KEEPALIVE, HUB_WS_KEEPALIVE_INTERVAL_SECONDS
+from env import HUB_WS_KEEPALIVE, HUB_WS_KEEPALIVE_INTERVAL_SECONDS, cors_allow_config
 from http_util import _bind_endpoint_is_subscribed
 from state import hub
 from subscriptions import (
@@ -22,13 +23,30 @@ from subscriptions import (
 router = APIRouter()
 
 
+def _origin_allowed(origin: Optional[str]) -> bool:
+    """Allow missing Origin (native Slicer/Qt); otherwise require CORS allowlist."""
+    if not origin or not str(origin).strip():
+        return True
+    origins, _ = cors_allow_config()
+    if origins == ["*"]:
+        return True
+    normalized = str(origin).strip().rstrip("/")
+    allowed = {o.rstrip("/") for o in origins}
+    return normalized in allowed
+
+
 @router.websocket("/bind/{endpoint}")
 async def websocket_endpoint(websocket: WebSocket, endpoint: str):
     """WebSocket endpoint for event delivery"""
-    if HUB_REQUIRE_AUTH and not _bind_endpoint_is_subscribed(endpoint):
+    origin = websocket.headers.get("origin")
+    if not _origin_allowed(origin):
+        await websocket.close(code=1008)
+        hub.log(f"Rejected bind WebSocket for disallowed Origin: {origin!r}")
+        return
+    if not _bind_endpoint_is_subscribed(endpoint):
         await websocket.close(code=1008)
         hub.log(
-            f"Rejected bind WebSocket for unknown endpoint under HUB_REQUIRE_AUTH: "
+            f"Rejected bind WebSocket for unknown endpoint (subscribe first): "
             f"{endpoint}"
         )
         return

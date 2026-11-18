@@ -18,7 +18,6 @@ from http_util import (
     _enforce_bearer_auth,
     _enforce_topic_match,
     _parse_request_body,
-    _serve_html_page,
 )
 from oauth_tokens import HUB_AUTH_MODE
 from state import hub
@@ -44,12 +43,13 @@ def _enforce_conference_actor(
 
 @router.get("/api/hub/conference-topics")
 @router.get("/api/hub/conference-topics/")
-async def get_conference_topics():
+async def get_conference_topics(request: Request):
     """Topics from active subscriptions (conference attendee picker).
 
     Returns ``[{topic, timezone}, ...]`` sorted by topic. ``timezone`` is the
     first non-empty ``client_info.timezone`` for that topic (IANA id), or ``\"\"``.
     """
+    _enforce_bearer_auth(request)
     by_topic: Dict[str, str] = {}
     for sub in hub.get_subscriptions():
         topic = str(sub.get("topic") or "").strip()
@@ -72,8 +72,9 @@ async def get_conference_topics():
 
 
 @router.get("/api/hub/conference")
-async def get_conference():
+async def get_conference(request: Request):
     """Get all conferences"""
+    _enforce_bearer_auth(request)
     return [
         {**conf, "participants": _conference_participant_subscribers(conf)}
         for conf in hub.conferences
@@ -375,10 +376,3 @@ async def delete_conference(request: Request):
         await hub.send_admin_refresh_command()
 
     return {"removed": len(removed), "updated": len(updated)}
-
-
-@router.get("/api/hub/conference-client")
-@router.get("/api/hub/conference-client/")
-async def get_conference_client():
-    """Get conference client page"""
-    return _serve_html_page("conference-client.html")

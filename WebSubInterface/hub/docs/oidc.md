@@ -4,8 +4,8 @@ The hub supports two auth modes via `HUB_AUTH_MODE`:
 
 | Mode | Login | API Bearer |
 |------|--------|------------|
-| `mock` (default) | `GET /oauth/login` → JSON hub session tokens (no redirect) | Optional (`HUB_REQUIRE_AUTH`) |
-| `oidc` | Browser: `GET /oauth/login` → IdP → `GET /oauth/callback` | **Required**; Bearer = hub-minted session JWT |
+| `mock` (default) | `GET /oauth/login` → JSON hub session tokens (no redirect) | **Required** (Bearer = mock session JWT) |
+| `oidc` | Browser: `GET /oauth/login` → IdP → `GET /oauth/callback` | **Required** (Bearer = hub-minted session JWT) |
 
 `POST /oauth/token` is for OIDC `client_credentials` (service providers) only.
 
@@ -15,9 +15,9 @@ The hub supports two auth modes via `HUB_AUTH_MODE`:
 | Mode | URL |
 |------|-----|
 | **OIDC** (Auth0 login) | [https://oidc.bellehumeur-engineering.com/](https://oidc.bellehumeur-engineering.com/) — worklist: [/worklist-client/](https://oidc.bellehumeur-engineering.com/worklist-client/) |
-| **Mock** (no IdP; public demos) | [https://bellehumeur-engineering.com/](https://bellehumeur-engineering.com/) — worklist: [/worklist-client/](https://bellehumeur-engineering.com/worklist-client/) |
+| **Mock** (no IdP; clients use `/oauth/login`) | [https://bellehumeur-engineering.com/](https://bellehumeur-engineering.com/) — worklist: [/worklist-client/](https://bellehumeur-engineering.com/worklist-client/) |
 
- Slicer preset `SLICER-HUB-CLOUD-OIDC` targets the OIDC host; `SLICER-HUB-CLOUD` targets the anonymous mock auth.
+ Slicer preset `SLICER-HUB-CLOUD-OIDC` targets the OIDC host; `SLICER-HUB-CLOUD` targets the mock-login hub.
 
 ## Environment
 
@@ -39,7 +39,7 @@ HUB_OIDC_SCOPES=openid email profile
 | Variable | Purpose |
 |----------|---------|
 | `HUB_AUTH_MODE` | `mock` or `oidc` |
-| `HUB_ADMIN_TOKEN` | Secret for privileged admin routes (required in oidc; client JWTs are not admin) |
+| `HUB_ADMIN_TOKEN` | Secret for privileged admin routes (required for admin UI; client JWTs are not admin) |
 | `HUB_OIDC_ISSUER` | IdP issuer (Auth0 domain, Entra tenant, or `https://accounts.google.com`) |
 | `HUB_OIDC_CLIENT_ID` / `HUB_OIDC_CLIENT_SECRET` | OAuth web client credentials |
 | `HUB_OIDC_REDIRECT_URI` | Must match the IdP “callback URL” exactly (else derived from public base + `/oauth/callback`) |
@@ -114,11 +114,11 @@ Prefer full-page redirect with `return_to` (popup optional later for embedded vi
 
 ## Admin portal (`/api/hub/admin`)
 
-In oidc mode the admin page redirects to `/oauth/login` (same hash-token return as HubClient) and sends the hub session JWT as `Authorization: Bearer`. Optional `HUB_ADMIN_TOKEN` still works via the prompt in mock / when that secret is set.
+Admin routes always require `HUB_ADMIN_TOKEN` (header / `?admin_token=` / Bearer equal to the secret). Ordinary session JWTs are not admin. The Slicer Hub Server UI opens admin with the per-run token query param.
 
 ## Conference APIs
 
-Create/join/leave/lead (`POST`/`PATCH`/`DELETE` `/api/hub/conference*`) require Bearer when oidc is on. `@slicer-hub/client` conference helpers and SPA dialogs pass the HubClient session token as `Authorization: Bearer`.
+List/create/join/leave/lead (`GET`/`POST`/`PATCH`/`DELETE` `/api/hub/conference*`) always require Bearer. `@slicer-hub/client` conference helpers and SPA dialogs pass the HubClient session token as `Authorization: Bearer`.
 
 ## Python `hub_client` / Image Display
 

@@ -51,6 +51,7 @@ class ConferenceDialog(qt.QDialog):
         self._hub_endpoint = ""
         self._session_topic = ""
         self._subscriber_name = ""
+        self._access_token = ""
         self._connected = False
         self._available_topics: List[str] = []
         self._conferences: List[Dict[str, Any]] = []
@@ -192,10 +193,12 @@ class ConferenceDialog(qt.QDialog):
         session_topic: str,
         subscriber_name: str,
         connected: bool,
+        access_token: str = "",
     ) -> None:
         self._hub_endpoint = str(hub_endpoint or "").strip()
         self._session_topic = str(session_topic or "").strip()
         self._subscriber_name = str(subscriber_name or "").strip()
+        self._access_token = str(access_token or "").strip()
         self._connected = bool(connected)
         self._clear_status()
 
@@ -297,6 +300,7 @@ class ConferenceDialog(qt.QDialog):
         self._fetch_generation += 1
         generation = self._fetch_generation
         hub_endpoint = self._hub_endpoint
+        access_token = self._access_token
 
         with self._fetch_lock:
             self._pending_fetch = None
@@ -313,8 +317,8 @@ class ConferenceDialog(qt.QDialog):
             conferences: List[Dict[str, Any]] = []
             error: Optional[str] = None
             try:
-                topics = fetch_conference_topics(hub_endpoint)
-                conferences = fetch_conferences(hub_endpoint)
+                topics = fetch_conference_topics(hub_endpoint, access_token)
+                conferences = fetch_conferences(hub_endpoint, access_token)
             except Exception as exc:
                 LOGGER.warning("Conference fetch failed: %s", exc)
                 error = str(exc)
@@ -481,6 +485,7 @@ class ConferenceDialog(qt.QDialog):
                 host_topic,
                 title,
                 invitees,
+                access_token=self._access_token,
             )
             self._clear_status()
             slicer.util.warningDisplay(
@@ -518,6 +523,7 @@ class ConferenceDialog(qt.QDialog):
                 self._hub_endpoint,
                 host_topic,
                 join_topic,
+                access_token=self._access_token,
             )
             self._set_status("success", _("Joined conference."))
             self._refresh_data()
@@ -545,6 +551,7 @@ class ConferenceDialog(qt.QDialog):
                 self._hub_endpoint,
                 host_topic,
                 leave_topic,
+                access_token=self._access_token,
             )
             self._set_status(
                 "success",

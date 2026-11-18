@@ -8,6 +8,7 @@ import os
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse
 
+from http_util import _enforce_bearer_auth
 from public_url import _request_public_base_url
 from samples import (
     _guess_sample_media_type,
@@ -23,6 +24,7 @@ router = APIRouter()
 @router.get("/api/hub/samples/")
 async def get_hub_samples(request: Request):
     """Worklist catalog for hub-hosted sample studies under hub/samples/."""
+    _enforce_bearer_auth(request)
     return _hub_samples_catalog(_request_public_base_url(request))
 
 

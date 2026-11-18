@@ -86,7 +86,6 @@ from oauth_tokens import (
     HUB_AUTH_MODE,
     HUB_MOCK_OAUTH,
     HUB_OIDC_ISSUER,
-    HUB_REQUIRE_AUTH,
     assert_oidc_runtime_config,
 )
 
@@ -293,12 +292,11 @@ def main():
         print(f"  GET    http://{args.host}:{args.port}/api/hub/auth/config")
     else:
         print("  Mock OAuth disabled (HUB_MOCK_OAUTH=false)")
-    if HUB_REQUIRE_AUTH:
-        print("  Bearer auth: required on /api/hub, conference mutators, payloads, bind")
+    print("  Bearer auth: required on hub APIs (mock or OIDC session JWT)")
     if HUB_ADMIN_TOKEN:
         print("  Admin APIs: gated by HUB_ADMIN_TOKEN (X-Hub-Admin-Token / ?admin_token=)")
-    elif HUB_REQUIRE_AUTH:
-        print("  Admin APIs: gated by Bearer JWT (HUB_REQUIRE_AUTH)")
+    else:
+        print("  Admin APIs: HUB_ADMIN_TOKEN unset (admin routes fail closed)")
     print("")
     print(f"WebSocket connections: ws://{args.host}:{args.port}/bind/<endpoint>")
     print("")

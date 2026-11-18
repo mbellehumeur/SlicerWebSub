@@ -240,6 +240,13 @@ class ImageDisplayClientConnection:
     def get_topic(self) -> str:
         return (self._topic or "").strip()
 
+    def get_access_token(self) -> str:
+        client = self._client
+        if client is None:
+            return ""
+        token = getattr(client, "_token", None)
+        return str(token or "").strip()
+
     def get_client(self) -> Optional[SlicerHubClient]:
         return self._client
 
@@ -396,7 +403,12 @@ class ImageDisplayClientConnection:
         ):
             return
         try:
-            join_cast_conference(hub_endpoint, host, join_topic)
+            join_cast_conference(
+                hub_endpoint,
+                host,
+                join_topic,
+                access_token=self.get_access_token(),
+            )
         except Exception as exc:
             LOGGER.warning("Conference invite join failed: %s", exc)
             slicer.util.warningDisplay(

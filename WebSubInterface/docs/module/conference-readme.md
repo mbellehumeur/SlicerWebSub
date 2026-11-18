@@ -10,8 +10,9 @@ This complements per-user OAuth topics — each participant keeps their own topi
 subscriber identity. The hub bridges traffic between topics for the duration of an
 active conference.
 
-Authoritative hub code: `hub/hub.py`. Conference UI:
-`hub/Resources/conference-client.html`.
+Authoritative hub code: `hub/hub.py`. Conference UI: in-app
+`@slicer-hub/conference-ui` (worklist / reporting / classroom / OHIF) and Slicer
+`ConferenceDialog`.
 
 ---
 
@@ -63,7 +64,6 @@ subscriber IANA timezone from `client_info`, or empty when unknown).
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| `GET` | `/api/hub/conference-client` | Conference UI (`?theme=3dslicer` or `?theme=volview`) |
 | `GET` | `/api/hub/conference-topics` | Attendee picker: `[{topic, timezone}, …]` |
 | `GET` | `/api/hub/conference` | List active conferences |
 | `POST` | `/api/hub/conference` | Create a conference |
@@ -120,26 +120,9 @@ host ends it or they leave.
 
 ### Conference UI
 
-**Primary:** VolView, OHIF, and the vtk-js HubClient example open an in-app
-**Conferencing** dialog from the Hub header menu (or the test bench **Conference**
-button in the vtk-js example).
-
-**Fallback:** `GET /api/hub/conference-client` serves a standalone HTML page for hub
-testing, Slicer-only workflows, and clients that have not yet integrated a native
-panel (e.g. the vtk-js HubClient example still opens the hub popup).
-
-Popup URL (fallback):
-
-```
-/api/hub/conference-client?subscriberName=VolView-ABC123&topic=USER-A&theme=volview&mode=dark
-```
-
-`topic` is required for create — the UI posts that value as `hostTopic`. VolView and
-OHIF use native dialogs (automatic app theme). The hub HTML page accepts `theme` and
-`mode` query parameters.
-
-Helpers: `resolveCastConferenceClientUrl()` in VolView `src/io/hub/hub-links.ts` and
-the OHIF hub extension `slicer-hub-links.ts` (popup fallback only).
+Worklist, reporting, classroom, and OHIF open an in-app **Conferencing** dialog from
+the Hub header (via `@slicer-hub/conference-ui`). Slicer uses `ConferenceDialog`.
+`topic` is required for create — the UI posts that value as `hostTopic`.
 
 ---
 

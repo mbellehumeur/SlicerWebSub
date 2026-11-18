@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import os
+import secrets
 import socket
 import subprocess
 import sys
 from typing import Optional
+from urllib.parse import quote
 
 import qt
 
@@ -96,6 +98,8 @@ class HubServerWidget:
         self._hub_pid: int = 0
         self._hub_port: int = DEFAULT_HUB_PORT
         self._stopping: bool = False
+        self._hub_admin_token: str = ""
+        self._hub_jwt_secret: str = ""
 
         self.portSpinBox: Optional[qt.QSpinBox] = None
         self.startButton: Optional[qt.QPushButton] = None
@@ -206,11 +210,23 @@ class HubServerWidget:
             )
             return
 
+        jwt_secret = secrets.token_urlsafe(32)
+        admin_token = secrets.token_urlsafe(24)
+        cors_origins = (
+            f"http://127.0.0.1:{port},http://localhost:{port}"
+        )
+
         proc = qt.QProcess()
         proc.setProgram(sys.executable)
         # Loopback only: embedded Slicer hub must not listen on the LAN by default.
         proc.setArguments([script, "--host", "127.0.0.1", "--port", str(port)])
         proc.setWorkingDirectory(hub_path)
+        env = qt.QProcessEnvironment.systemEnvironment()
+        env.insert("HUB_AUTH_MODE", "mock")
+        env.insert("HUB_JWT_SECRET", jwt_secret)
+        env.insert("HUB_ADMIN_TOKEN", admin_token)
+        env.insert("HUB_CORS_ORIGINS", cors_origins)
+        proc.setProcessEnvironment(env)
         proc.setProcessChannelMode(qt.QProcess.MergedChannels)
         proc.readyReadStandardOutput.connect(self._on_hub_output)
         proc.finished.connect(self._on_hub_finished)
@@ -222,6 +238,8 @@ class HubServerWidget:
 
         self._hub_process = proc
         self._hub_pid = int(proc.processId())
+        self._hub_jwt_secret = jwt_secret
+        self._hub_admin_token = admin_token
         if self.startButton:
             self.startButton.enabled = False
         if self.stopButton:
@@ -271,6 +289,8 @@ class HubServerWidget:
         elif known_pid > 0 and _is_windows():
             _win_kill_process_tree(known_pid)
         self._hub_pid = 0
+        self._hub_admin_token = ""
+        self._hub_jwt_secret = ""
         self._reset_ui_stopped()
         if _port_is_listening("127.0.0.1", port):
             self._stopping = False
@@ -286,7 +306,11 @@ class HubServerWidget:
 
     def _on_open_admin(self) -> None:
         port = _hub_port_from_spin(self.portSpinBox)
-        qt.QDesktopServices.openUrl(qt.QUrl(f"http://127.0.0.1:{port}/api/hub/admin"))
+        url = f"http://127.0.0.1:{port}/api/hub/admin"
+        token = (self._hub_admin_token or "").strip()
+        if token:
+            url = f"{url}?admin_token={quote(token, safe='')}"
+        qt.QDesktopServices.openUrl(qt.QUrl(url))
 
     def _on_hub_output(self) -> None:
         if not self._hub_process:
@@ -309,6 +333,8 @@ class HubServerWidget:
         self._stopping = False
         self._hub_process = None
         self._hub_pid = 0
+        self._hub_admin_token = ""
+        self._hub_jwt_secret = ""
         self._reset_ui_stopped()
         if user_stopped or (
             exit_status == qt.QProcess.NormalExit and exit_code == 0

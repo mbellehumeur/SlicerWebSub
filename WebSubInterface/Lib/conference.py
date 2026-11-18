@@ -63,10 +63,14 @@ def _http_json(
     *,
     method: str = "GET",
     body: Optional[Dict[str, Any]] = None,
+    access_token: str = "",
     timeout: float = 30.0,
 ) -> Any:
     data = None
     headers = {"Accept": "application/json"}
+    token = str(access_token or "").strip()
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
     if body is not None:
         data = json.dumps(body).encode("utf-8")
         headers["Content-Type"] = "application/json"
@@ -144,12 +148,14 @@ def find_active_cast_conference(
     return None
 
 
-def fetch_conference_topics(hub_endpoint: str) -> List[str]:
+def fetch_conference_topics(
+    hub_endpoint: str, access_token: str = ""
+) -> List[str]:
     api_url = _conference_api_url(hub_endpoint, "/api/hub/conference-topics")
     if not api_url:
         return []
     try:
-        data = _http_json(api_url)
+        data = _http_json(api_url, access_token=access_token)
         if not isinstance(data, list):
             return []
         topics: List[str] = []
@@ -166,12 +172,14 @@ def fetch_conference_topics(hub_endpoint: str) -> List[str]:
         return []
 
 
-def fetch_conferences(hub_endpoint: str) -> List[Dict[str, Any]]:
+def fetch_conferences(
+    hub_endpoint: str, access_token: str = ""
+) -> List[Dict[str, Any]]:
     api_url = _conference_api_url(hub_endpoint, "/api/hub/conference")
     if not api_url:
         return []
     try:
-        data = _http_json(api_url)
+        data = _http_json(api_url, access_token=access_token)
         return data if isinstance(data, list) else []
     except (HTTPError, URLError, OSError, json.JSONDecodeError) as exc:
         LOGGER.warning("fetch_conferences failed: %s", exc)
@@ -183,6 +191,8 @@ def create_cast_conference(
     host_topic: str,
     title: str,
     topics: Optional[List[str]] = None,
+    *,
+    access_token: str = "",
 ) -> None:
     """Create a conference. ``topics`` are invite notifications only (self-join)."""
     api_url = _conference_api_url(hub_endpoint, "/api/hub/conference")
@@ -202,6 +212,7 @@ def create_cast_conference(
                 "title": str(title).strip(),
                 "topics": invitees,
             },
+            access_token=access_token,
         )
     except HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")
@@ -216,6 +227,7 @@ def join_cast_conference(
     join_topic: str,
     *,
     join_user_name: str = "",
+    access_token: str = "",
 ) -> None:
     """Voluntary join: add ``join_topic`` to an existing conference."""
     api_url = _conference_api_url(hub_endpoint, "/api/hub/conference/join")
@@ -229,7 +241,7 @@ def join_cast_conference(
     if label:
         body["joinUserName"] = label
     try:
-        _http_json(api_url, method="PATCH", body=body)
+        _http_json(api_url, method="PATCH", body=body, access_token=access_token)
     except HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")
         raise RuntimeError(detail or f"HTTP {exc.code}") from exc
@@ -241,6 +253,8 @@ def delete_cast_conference(
     hub_endpoint: str,
     host_topic: str,
     leave_topic: Optional[str] = None,
+    *,
+    access_token: str = "",
 ) -> None:
     api_url = _conference_api_url(hub_endpoint, "/api/hub/conference")
     if not api_url:
@@ -250,7 +264,7 @@ def delete_cast_conference(
     if leave:
         body["leaveTopic"] = leave
     try:
-        _http_json(api_url, method="DELETE", body=body)
+        _http_json(api_url, method="DELETE", body=body, access_token=access_token)
     except HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")
         raise RuntimeError(detail or f"HTTP {exc.code}") from exc
@@ -262,8 +276,10 @@ def resolve_cast_conference_state(
     hub_endpoint: str,
     topic: str,
     subscriber_name: str,
+    *,
+    access_token: str = "",
 ) -> Dict[str, Any]:
-    conferences = fetch_conferences(hub_endpoint)
+    conferences = fetch_conferences(hub_endpoint, access_token=access_token)
     match = find_active_cast_conference(topic, subscriber_name, conferences)
     return {
         "active": bool(match),

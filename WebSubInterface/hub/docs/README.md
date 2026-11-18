@@ -55,13 +55,13 @@ Primary switch: **`HUB_AUTH_MODE=mock|oidc`** (default `mock`). Full setup (Auth
 
 | Mode | Hub settings | Client behavior |
 |------|--------------|-----------------|
-| **Mock (default)** | `HUB_AUTH_MODE=mock`, optional `HUB_REQUIRE_AUTH` | JS/Python clients `POST` `/oauth/*`; Bearer optional unless `HUB_REQUIRE_AUTH=true` |
-| **OIDC (Google)** | `HUB_AUTH_MODE=oidc` + issuer/client/JWT secret | Browser login via HubClient; hub mints session JWT; Bearer required; topic must match JWT |
-| **Admin token (hosted demos)** | `HUB_ADMIN_TOKEN=<secret>` | Admin snapshot/metrics/clear-audit/reset and `/ws/admin` require `X-Hub-Admin-Token` (or `?admin_token=` / Bearer equal to the secret) |
+| **Mock (default)** | `HUB_AUTH_MODE=mock`, `HUB_JWT_SECRET`, `HUB_ADMIN_TOKEN` | Clients `GET /oauth/login` then send Bearer on all hub APIs |
+| **OIDC** | `HUB_AUTH_MODE=oidc` + issuer/client/JWT secret + `HUB_ADMIN_TOKEN` | Browser login via HubClient; hub mints session JWT; Bearer required; topic must match JWT |
+| **Admin token** | `HUB_ADMIN_TOKEN=<secret>` (required) | Admin snapshot/metrics/clear-audit/reset and `/ws/admin` require `X-Hub-Admin-Token` (or `?admin_token=` / Bearer equal to the secret) |
 
-Bearer / admin-token validation lives in [`Lib/oauth_tokens.py`](Lib/oauth_tokens.py) (HS256 hub session + discovery JWKS for IdP id_tokens + `HUB_ADMIN_TOKEN`). When `HUB_REQUIRE_AUTH` or `HUB_ADMIN_TOKEN` is set, privileged admin routes accept **only** `HUB_ADMIN_TOKEN` — ordinary client JWTs are not admin. OIDC/cloud deploys must set `HUB_ADMIN_TOKEN`. Admin snapshot omits subscription `secret` values. `DELETE /api/hub` only unsubscribes a specific endpoint/callback+topic (no mass clear; use `POST /api/admin/reset`). Python `hub_client` supports mock `GET /oauth/login` and OIDC browser / M2M.
+Bearer / admin-token validation lives in [`Lib/oauth_tokens.py`](Lib/oauth_tokens.py) (HS256 hub session + discovery JWKS for IdP id_tokens + `HUB_ADMIN_TOKEN`). Hub APIs always require a valid Bearer JWT. Privileged admin routes accept **only** `HUB_ADMIN_TOKEN` — ordinary client JWTs are not admin. Deployments (including the Slicer-started local hub) must set `HUB_ADMIN_TOKEN`. Admin snapshot omits subscription `secret` values. `DELETE /api/hub` only unsubscribes a specific endpoint/callback+topic (no mass clear; use `POST /api/admin/reset`). Python `hub_client` supports mock `GET /oauth/login` and OIDC browser / M2M. Bootstrap without Bearer: `/api/hub/auth/config`, `/oauth/login`, `/oauth/callback`, `/oauth/token`, and static SPA assets. Sample study *file* GETs under `/api/hub/samples/files/…` stay public for direct download; the samples catalog requires Bearer.
 
-Conference UI: `/api/hub/conference-client`, APIs under `/api/hub/conference` and `/api/hub/conference-topics`.
+Conference APIs under `/api/hub/conference` and `/api/hub/conference-topics` (in-app UI via `@slicer-hub/conference-ui` / Slicer `ConferenceDialog`).
 Create keeps membership empty; caller-supplied `topics` are an invite notify list only (`conference-start` fan-out). Attendees must `PATCH /api/hub/conference/join` as themselves before request/publish fan-out includes them. In OIDC mode, create/end bind to the JWT host topic, join binds to `joinTopic`, and leave binds to `leaveTopic`.
 
 Event names (`<datatype>-request` / `<datatype>-response` and fixed wire events) are defined in [`../python_client/src/hub_client/client.py`](../python_client/src/hub_client/client.py) and mirrored in `@slicer-hub/client` `eventNames.js`.
@@ -263,7 +263,7 @@ Each item in `responses` is one subscriber's `<datatype>-response` payload. The 
 
 ## Admin dashboard
 
-- **HTTP:** `GET /api/hub/admin/snapshot` — full state for the UI (subscription `secret` omitted). Gated when `HUB_ADMIN_TOKEN` or `HUB_REQUIRE_AUTH` is set.
+- **HTTP:** `GET /api/hub/admin/snapshot` — full state for the UI (subscription `secret` omitted). Always gated by `HUB_ADMIN_TOKEN`.
 - **WebSocket:** `WS /ws/admin` — lightweight `admin.refresh` with `revision`; the page reloads snapshot when revision changes. Pass `?admin_token=` when gated.
 - **Reset:** `POST /api/admin/reset` — clears subscriptions, audit, conferences, auth codes; optional `single_user_mode`. Same admin gate as snapshot.
 - **Unsubscribe only:** `DELETE /api/hub` with `hub.channel.endpoint` and/or `hub.callback`+`hub.topic`. Empty DELETE no longer clears all subscriptions.

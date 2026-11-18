@@ -70,12 +70,15 @@ Public images (no Docker Hub account required to pull):
 docker pull ghcr.io/mbellehumeur/slicer-hub:slim
 docker run --rm -p 8000:8000 \
   -e HUB_AUTH_MODE=mock \
+  -e HUB_JWT_SECRET="$(openssl rand -hex 32)" \
+  -e HUB_ADMIN_TOKEN="$(openssl rand -hex 16)" \
   -e HUB_PUBLIC_BASE_URL=http://127.0.0.1:8000 \
   -e HUB_WS_KEEPALIVE=true \
   ghcr.io/mbellehumeur/slicer-hub:slim
 ```
 
-Admin: http://127.0.0.1:8000/api/hub/admin  
+Clients must `GET /oauth/login` then send `Authorization: Bearer` on hub APIs.  
+Admin: http://127.0.0.1:8000/api/hub/admin?admin_token=…  
 Auth config: http://127.0.0.1:8000/api/hub/auth/config
 
 ### Run (OIDC)
@@ -89,6 +92,7 @@ docker run --rm -p 8000:8000 \
   -e HUB_OIDC_CLIENT_ID=... \
   -e HUB_OIDC_CLIENT_SECRET=... \
   -e HUB_JWT_SECRET=... \
+  -e HUB_ADMIN_TOKEN=... \
   -e HUB_WS_KEEPALIVE=true \
   ghcr.io/mbellehumeur/slicer-hub:slim
 ```

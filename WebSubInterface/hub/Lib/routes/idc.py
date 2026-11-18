@@ -23,6 +23,8 @@ from segment_label_translate import (
     translate_segment_labels,
 )
 
+from http_util import _enforce_bearer_auth
+
 router = APIRouter()
 
 
@@ -51,6 +53,7 @@ def _proxy_download_host_allowed(hostname: str) -> bool:
 @router.get("/api/hub/proxy-download/")
 async def proxy_download(request: Request, url: str = ""):
     """Stream an allowlisted remote file for browser Image Displays (CORS bridge)."""
+    _enforce_bearer_auth(request)
     target = str(url or "").strip()
     if not target:
         raise HTTPException(status_code=400, detail="Missing url query parameter")
@@ -145,6 +148,7 @@ def _env_idc_mcp_proxy_timeout_seconds() -> float:
 @router.post("/api/hub/idc/series-files/")
 async def post_hub_idc_series_files(request: Request):
     """Resolve IDC series metadata to per-instance HTTPS files via idc-index."""
+    _enforce_bearer_auth(request)
     try:
         payload = await request.json()
     except Exception as exc:
@@ -232,6 +236,7 @@ async def get_hub_translate_status():
 @router.post("/api/hub/translate/")
 async def post_hub_translate(request: Request):
     """Translate English segment labels via Anthropic when static locale maps miss."""
+    _enforce_bearer_auth(request)
     if not segment_label_translate_configured():
         raise HTTPException(
             status_code=503,
@@ -293,6 +298,7 @@ async def post_hub_translate(request: Request):
 @router.post("/api/hub/idc-mcp/search/")
 async def post_hub_idc_nl_search(request: Request):
     """NL → SearchQuery JSON via Anthropic (client executes against IDC REST)."""
+    _enforce_bearer_auth(request)
     if not anthropic_configured():
         raise HTTPException(
             status_code=503,
@@ -353,6 +359,7 @@ async def post_hub_idc_nl_search(request: Request):
 @router.post("/idc-mcp-proxy/mcp")
 async def idc_mcp_proxy(request: Request):
     """Streamable HTTP proxy to the official IDC MCP endpoint."""
+    _enforce_bearer_auth(request)
     upstream = _env_idc_mcp_upstream_url()
     body = await request.body()
     forward_headers: Dict[str, str] = {}

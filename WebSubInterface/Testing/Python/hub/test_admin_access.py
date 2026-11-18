@@ -19,13 +19,7 @@ def main() -> int:
     sys.path.insert(0, str(hub_lib))
     import oauth_tokens as ot
 
-    # Local demo: neither admin token nor require-auth → open.
-    ot.HUB_ADMIN_TOKEN = ""
-    ot.HUB_REQUIRE_AUTH = False
-    assert ot.validate_admin_access() == {}
-
-    # Auth required but no admin token configured → fail closed.
-    ot.HUB_REQUIRE_AUTH = True
+    # No admin token configured → fail closed.
     ot.HUB_ADMIN_TOKEN = ""
     try:
         ot.validate_admin_access(authorization_header="Bearer unused")
@@ -46,6 +40,20 @@ def main() -> int:
     try:
         ot.validate_admin_access(authorization_header="Bearer not-the-admin")
         print("FAIL: ordinary bearer must not grant admin")
+        return 1
+    except ot.TokenValidationError:
+        pass
+
+    # Hub APIs always require Bearer (no anonymous identity).
+    try:
+        ot.validate_request_bearer(None)
+        print("FAIL: expected TokenValidationError for missing bearer")
+        return 1
+    except ot.TokenValidationError:
+        pass
+    try:
+        ot.validate_request_bearer("")
+        print("FAIL: expected TokenValidationError for empty bearer")
         return 1
     except ot.TokenValidationError:
         pass

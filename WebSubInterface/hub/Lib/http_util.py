@@ -11,7 +11,6 @@ from fastapi.responses import RedirectResponse, Response
 from oauth_tokens import (
     HUB_AUTH_MODE,
     TokenValidationError,
-    admin_auth_required,
     oauth_error_body,
     validate_admin_access,
     validate_request_bearer,
@@ -46,7 +45,7 @@ async def _parse_request_body(request: Request) -> dict:
 
 
 def _enforce_bearer_auth(request: Request) -> Dict[str, Any]:
-    """When HUB_REQUIRE_AUTH is set, require a valid Bearer JWT."""
+    """Require a valid Bearer JWT on hub APIs."""
     try:
         return validate_request_bearer(request.headers.get("authorization"))
     except TokenValidationError as exc:
@@ -111,8 +110,6 @@ async def _enforce_privileged_admin_ws(websocket: WebSocket) -> bool:
 
     Returns True when the caller may ``accept()`` the socket.
     """
-    if not admin_auth_required():
-        return True
     try:
         validate_admin_access(
             authorization_header=websocket.headers.get("authorization"),

@@ -43,10 +43,7 @@ def _resolve_auth_mode() -> str:
 HUB_AUTH_MODE = _resolve_auth_mode()
 # Mock endpoints only when mode is mock and HUB_MOCK_OAUTH is not explicitly off.
 HUB_MOCK_OAUTH = HUB_AUTH_MODE == "mock" and _env_flag("HUB_MOCK_OAUTH", default=True)
-# OIDC mode always requires Bearer on hub APIs.
-HUB_REQUIRE_AUTH = True if HUB_AUTH_MODE == "oidc" else _env_flag(
-    "HUB_REQUIRE_AUTH", default=False
-)
+# Hub APIs always require Bearer; HUB_AUTH_MODE only chooses how tokens are minted.
 HUB_ADMIN_TOKEN = os.environ.get("HUB_ADMIN_TOKEN", "").strip()
 JWT_ALGORITHM = "HS256"
 JWT_DEFAULT_SECRET = os.environ.get("HUB_JWT_SECRET", JWT_INSECURE_DEFAULT_SECRET)
@@ -102,8 +99,11 @@ HUB_SP_CLIENT_IDS = _parse_sp_client_ids()
 
 
 def admin_auth_required() -> bool:
-    """True when admin/destructive routes must authenticate."""
-    return bool(HUB_ADMIN_TOKEN) or HUB_REQUIRE_AUTH
+    """True when admin/destructive routes require ``HUB_ADMIN_TOKEN``.
+
+    Admin is never open: if the token is unset, admin routes fail closed.
+    """
+    return True
 
 
 def jwt_secret_is_insecure_default() -> bool:
@@ -356,9 +356,7 @@ def oauth_error_body(detail: str) -> Dict[str, str]:
 
 
 def validate_request_bearer(authorization_header: Optional[str]) -> Dict[str, Any]:
-    """Return identity dict when auth is required (oidc or HUB_REQUIRE_AUTH)."""
-    if not HUB_REQUIRE_AUTH:
-        return {}
+    """Return identity dict from a required Bearer JWT (mock or OIDC session)."""
     token = extract_bearer_token(authorization_header)
     if not token:
         raise TokenValidationError("Missing Authorization Bearer token")
@@ -381,16 +379,12 @@ def validate_admin_access(
 ) -> Dict[str, Any]:
     """Authorize privileged admin routes.
 
-    When neither ``HUB_ADMIN_TOKEN`` nor ``HUB_REQUIRE_AUTH`` is set, allow
-    (local demo). Otherwise require a matching ``HUB_ADMIN_TOKEN``
-    (header/query/Bearer). Ordinary client JWTs are never admin.
+    Always requires a matching ``HUB_ADMIN_TOKEN`` (header/query/Bearer).
+    Ordinary client JWTs are never admin.
     """
-    if not admin_auth_required():
-        return {}
-
     if not HUB_ADMIN_TOKEN:
         raise TokenValidationError(
-            "HUB_ADMIN_TOKEN is required for admin routes when authentication is enabled"
+            "HUB_ADMIN_TOKEN is required for admin routes"
         )
 
     candidates: list[str] = []

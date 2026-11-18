@@ -557,8 +557,10 @@ class ImageDisplayClientWidget:
         if not slicer.util.confirmYesNoDisplay(
             _(
                 "While connected, peers on this hub topic can request your local "
-                "Slicer DICOM database worklist and images. Continue only if this "
-                "system does not hold patient PHI you must not share."
+                "Slicer DICOM database worklist and images. Other websites open in "
+                "this browser cannot use the local hub without your session token, "
+                "but only continue if this system does not hold patient PHI you "
+                "must not share."
             ),
             windowTitle=_("Share local DICOM?"),
             dontShowAgainSettingsKey=_PHI_CONNECT_SETTINGS_KEY,
@@ -648,6 +650,7 @@ class ImageDisplayClientWidget:
             session_topic=self.topicEdit.text.strip(),
             subscriber_name=self._hub.get_subscriber_name(),
             connected=self._hub.isHubConnected(),
+            access_token=self._hub.get_access_token(),
         )
         self._conference_dialog.show()
         self._conference_dialog.raise_()

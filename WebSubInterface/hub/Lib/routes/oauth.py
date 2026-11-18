@@ -24,7 +24,6 @@ from oauth_tokens import (
     HUB_OIDC_M2M_AUDIENCE,
     HUB_OIDC_REDIRECT_URI,
     HUB_OIDC_SCOPES,
-    HUB_REQUIRE_AUTH,
     HUB_SP_CLIENT_IDS,
     JWT_AUDIENCE,
     JWT_DEFAULT_SECRET,
@@ -399,7 +398,7 @@ async def get_auth_config(request: Request):
     base = _request_public_base_url(request).rstrip("/")
     payload: Dict[str, Any] = {
         "mode": HUB_AUTH_MODE,
-        "require_auth": bool(HUB_REQUIRE_AUTH),
+        "require_auth": True,
         "login_url": f"{base}/oauth/login",
         "token_url": f"{base}/oauth/token",
     }
