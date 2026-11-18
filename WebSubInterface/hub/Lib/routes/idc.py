@@ -7,7 +7,7 @@ import logging
 import os
 import time
 from typing import Dict
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 import aiohttp
 from fastapi import APIRouter, HTTPException, Request, Response
@@ -37,6 +37,7 @@ _PROXY_DOWNLOAD_ALLOWED_HOSTS = frozenset(
         "release-assets.githubusercontent.com",
     }
 )
+_PROXY_DOWNLOAD_MAX_REDIRECTS = 5
 
 
 def _proxy_download_host_allowed(hostname: str) -> bool:
@@ -49,10 +50,81 @@ def _proxy_download_host_allowed(hostname: str) -> bool:
     return host.endswith(".githubusercontent.com")
 
 
+def _proxy_next_url(current: str, location: str) -> str:
+    """Resolve a redirect Location and require an allowlisted http(s) host."""
+    loc = str(location or "").strip()
+    if not loc:
+        raise HTTPException(status_code=502, detail="Redirect missing Location")
+    next_url = urljoin(str(current or ""), loc)
+    try:
+        parsed = urlparse(next_url)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=400, detail=f"Invalid redirect url: {exc}"
+        ) from exc
+    if parsed.scheme not in ("http", "https"):
+        raise HTTPException(
+            status_code=403,
+            detail=f"Redirect scheme not allowed: {parsed.scheme}",
+        )
+    host = parsed.hostname or ""
+    if not _proxy_download_host_allowed(host):
+        raise HTTPException(
+            status_code=403,
+            detail=f"Redirect host not allowlisted: {host}",
+        )
+    return next_url
+
+
+async def _proxy_fetch_allowlisted(
+    session: aiohttp.ClientSession, start_url: str
+) -> aiohttp.ClientResponse:
+    """GET ``start_url``, following redirects only to allowlisted hosts."""
+    current = start_url
+    redirects = 0
+    while True:
+        try:
+            upstream = await session.get(current, allow_redirects=False)
+        except Exception as exc:
+            raise HTTPException(
+                status_code=502, detail=f"Upstream fetch failed: {exc}"
+            ) from exc
+        if upstream.status in (301, 302, 303, 307, 308):
+            if redirects >= _PROXY_DOWNLOAD_MAX_REDIRECTS:
+                upstream.close()
+                raise HTTPException(
+                    status_code=502,
+                    detail=(
+                        f"Too many redirects "
+                        f"(max {_PROXY_DOWNLOAD_MAX_REDIRECTS})"
+                    ),
+                )
+            location = upstream.headers.get("Location", "")
+            try:
+                current = _proxy_next_url(str(upstream.url), location)
+            except HTTPException:
+                upstream.close()
+                raise
+            upstream.close()
+            redirects += 1
+            continue
+        final_host = urlparse(str(upstream.url)).hostname or ""
+        if not _proxy_download_host_allowed(final_host):
+            upstream.close()
+            raise HTTPException(
+                status_code=403,
+                detail=f"Redirect host not allowlisted: {final_host}",
+            )
+        return upstream
+
+
 @router.get("/api/hub/proxy-download")
 @router.get("/api/hub/proxy-download/")
 async def proxy_download(request: Request, url: str = ""):
-    """Stream an allowlisted remote file for browser Image Displays (CORS bridge)."""
+    """Stream an allowlisted remote file for browser Image Displays (CORS bridge).
+
+    Redirects are followed hop-by-hop only within the GitHub allowlist.
+    """
     _enforce_bearer_auth(request)
     target = str(url or "").strip()
     if not target:
@@ -78,21 +150,10 @@ async def proxy_download(request: Request, url: str = ""):
         ) from exc
 
     try:
-        upstream = await session.get(target, allow_redirects=True)
-    except Exception as exc:
+        upstream = await _proxy_fetch_allowlisted(session, target)
+    except Exception:
         await session.close()
-        raise HTTPException(
-            status_code=502, detail=f"Upstream fetch failed: {exc}"
-        ) from exc
-
-    final_host = urlparse(str(upstream.url)).hostname or ""
-    if not _proxy_download_host_allowed(final_host):
-        upstream.close()
-        await session.close()
-        raise HTTPException(
-            status_code=403,
-            detail=f"Redirect host not allowlisted: {final_host}",
-        )
+        raise
 
     if upstream.status >= 400:
         body = await upstream.text()

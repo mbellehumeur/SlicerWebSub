@@ -310,7 +310,7 @@ Each item in `responses` is one subscriber's `<datatype>-response` payload. The 
 | [`conference.py`](Lib/routes/conference.py) | Conference HTTP APIs + client page |
 | [`payloads.py`](Lib/routes/payloads.py) | `GET` `/api/hub/payloads/{token}` |
 | [`samples.py`](Lib/routes/samples.py) | Sample catalog + file download |
-| [`idc.py`](Lib/routes/idc.py) | IDC series/NL/translate/proxy-download/MCP |
+| [`idc.py`](Lib/routes/idc.py) | IDC series/NL/translate/proxy-download/MCP (`proxy-download` follows redirects hop-by-hop within the GitHub host allowlist only) |
 | [`misc.py`](Lib/routes/misc.py) | `robots.txt`, favicon, icons |
 
 For workspace-wide Hub protocol rules (event-name sync across Python/JS/TS, line endings), see [`../../AGENTS.md`](../../AGENTS.md).
