@@ -38,7 +38,7 @@ from oauth_tokens import (
 from oidc_discovery import OidcDiscoveryError, fetch_openid_configuration
 
 from http_util import _parse_request_body
-from public_url import _request_public_base_url
+from public_url import _oauth_public_base_url, _request_public_base_url
 from state import hub
 
 router = APIRouter()
@@ -175,13 +175,13 @@ def _pkce_challenge(verifier: str) -> str:
 def _oidc_redirect_uri(request: Request) -> str:
     if HUB_OIDC_REDIRECT_URI:
         return HUB_OIDC_REDIRECT_URI
-    base = _request_public_base_url(request).rstrip("/")
+    base = _oauth_public_base_url(request).rstrip("/")
     return f"{base}/oauth/callback"
 
 
 def _allowed_return_origins(request: Request) -> set[str]:
     """Hub origin + HUB_OIDC_RETURN_ORIGINS (comma-separated)."""
-    base = _request_public_base_url(request).rstrip("/")
+    base = _oauth_public_base_url(request).rstrip("/")
     origins: set[str] = set()
     try:
         parsed = urlparse(base)
@@ -218,7 +218,7 @@ def _safe_return_to(raw: str, request: Request) -> str:
     """Resolve post-login redirect. Allows hub origin, configured SPA origins,
     and localhost/127.0.0.1 (any port) for local HubClient SPAs."""
     candidate = (raw or "").strip()
-    base = _request_public_base_url(request).rstrip("/")
+    base = _oauth_public_base_url(request).rstrip("/")
     if not candidate:
         return f"{base}/worklist-client/"
     if candidate.startswith("/"):

@@ -37,3 +37,15 @@ def _request_public_base_url(request: Request) -> str:
     ):
         return "https://" + base[len("http://") :]
     return base
+
+
+def _oauth_public_base_url(request: Request) -> str:
+    """Hub origin for OAuth redirects; OIDC mode never trusts request headers."""
+    from oauth_tokens import HUB_AUTH_MODE
+
+    if HUB_AUTH_MODE == "oidc":
+        explicit = _env_public_base_url()
+        if not explicit:
+            raise RuntimeError("HUB_PUBLIC_BASE_URL is required in oidc mode")
+        return explicit
+    return _request_public_base_url(request)

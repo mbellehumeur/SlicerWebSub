@@ -10,6 +10,7 @@ import logging
 import os
 import time
 from typing import Any, Dict, Optional
+from urllib.parse import urlparse
 
 import jwt
 from jwt import PyJWKClient
@@ -123,6 +124,14 @@ def assert_oidc_runtime_config() -> None:
         missing.append("HUB_OIDC_CLIENT_SECRET")
     if jwt_secret_is_insecure_default():
         missing.append("HUB_JWT_SECRET (must not use the insecure default)")
+    # OAuth redirects must not derive the hub origin from Host / X-Forwarded-Host.
+    public_base = os.environ.get("HUB_PUBLIC_BASE_URL", "").strip()
+    if not public_base:
+        missing.append("HUB_PUBLIC_BASE_URL")
+    else:
+        parsed = urlparse(public_base)
+        if parsed.scheme not in ("http", "https") or not parsed.netloc:
+            missing.append("HUB_PUBLIC_BASE_URL (must be an absolute http(s) URL)")
     if missing:
         raise RuntimeError(
             "HUB_AUTH_MODE=oidc requires: " + ", ".join(missing)

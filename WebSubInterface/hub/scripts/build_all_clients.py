@@ -4,9 +4,14 @@
 Required: SlicerWebSub-js (worklist/reporting/classroom), SlicerLive, Viewers (OHIF).
 Optional: slim, bellehumeur-website (warn and skip if missing).
 
+OHIF always runs ``pnpm run build:slicer-hub`` (PUBLIC_URL=/ohif/). Slim is not
+rebuilt by default (slow, rarely changed); pass ``--build-slim`` to rebuild it.
+Sync still copies an existing slim/build into hub/slim/ when present.
+
 Usage:
     cd WebSubInterface/hub
     python scripts/build_all_clients.py
+    python scripts/build_all_clients.py --build-slim   # also rebuild slim
     python scripts/build_all_clients.py --skip-build   # sync only
     python scripts/build_all_clients.py --skip-sync    # build only
 
@@ -350,17 +355,6 @@ def build_ohif(viewers: Path) -> None:
     print("Built OHIF (PUBLIC_URL=/ohif/)")
 
 
-def ensure_ohif_cloud_dist(viewers: Path) -> None:
-    dist_index = viewers / "platform" / "app" / "dist" / "index.html"
-    if ohif_index_is_cloud_mount(dist_index):
-        return
-    print(
-        f"OHIF dist is not a /ohif/ build ({dist_index}); "
-        "running pnpm run build:slicer-hub …"
-    )
-    build_ohif(viewers)
-
-
 def build_slim(slim_root: Path) -> None:
     print(f"Building slim for /slim/ ({slim_root}) …")
     subprocess.run([*_pnpm(), "run", "build:cast"], cwd=slim_root, check=True)
@@ -383,6 +377,7 @@ def run_builds(
     viewers_root: Path | None,
     slim_root: Path | None,
     website_root: Path | None,
+    build_slim_flag: bool = False,
 ) -> None:
     js = js_root or find_hub_js_root(search_from)
     if js is None:
@@ -401,16 +396,22 @@ def run_builds(
 
     build_hub_js(js)
     build_slicerlive(live)
-    ensure_ohif_cloud_dist(viewers)
+    build_ohif(viewers)
 
-    slim = slim_root or find_slim_root(search_from)
-    if slim is None:
-        print("Warning: slim repo not found; skipping slim build", file=sys.stderr)
+    if build_slim_flag:
+        slim = slim_root or find_slim_root(search_from)
+        if slim is None:
+            print("Warning: slim repo not found; skipping slim build", file=sys.stderr)
+        else:
+            try:
+                build_slim(slim)
+            except (RuntimeError, subprocess.CalledProcessError) as err:
+                print(f"Warning: slim build failed ({err}); skipping", file=sys.stderr)
     else:
-        try:
-            build_slim(slim)
-        except (RuntimeError, subprocess.CalledProcessError) as err:
-            print(f"Warning: slim build failed ({err}); skipping", file=sys.stderr)
+        print(
+            "Skipping slim rebuild (pass --build-slim to rebuild); "
+            "will sync existing slim/build if present"
+        )
 
     website = website_root or find_website_root(search_from)
     if website is None:
@@ -499,6 +500,11 @@ def main() -> int:
     parser.add_argument("--slim-root", default=None, help="slim repo root")
     parser.add_argument("--website-root", default=None, help="bellehumeur-website root")
     parser.add_argument(
+        "--build-slim",
+        action="store_true",
+        help="Also rebuild slim (skipped by default; slow and rarely changed)",
+    )
+    parser.add_argument(
         "--skip-build",
         action="store_true",
         help="Skip builds; only sync existing dists into hub/",
@@ -531,6 +537,7 @@ def main() -> int:
                 viewers_root=viewers_root,
                 slim_root=slim_root,
                 website_root=website_root,
+                build_slim_flag=args.build_slim,
             )
         if not args.skip_sync:
             run_sync(

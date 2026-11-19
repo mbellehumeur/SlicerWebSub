@@ -48,7 +48,7 @@ HUB_OIDC_SCOPES=openid email profile
 | `HUB_OIDC_ISSUER` | IdP issuer (Auth0 domain, Entra tenant, or `https://accounts.google.com`) |
 | `HUB_OIDC_CLIENT_ID` / `HUB_OIDC_CLIENT_SECRET` | OAuth web client credentials |
 | `HUB_OIDC_REDIRECT_URI` | Must match the IdP “callback URL” exactly (else derived from public base + `/oauth/callback`) |
-| `HUB_PUBLIC_BASE_URL` | Public hub URL for redirects / auth config |
+| `HUB_PUBLIC_BASE_URL` | Public hub URL for redirects / auth config (**required** in oidc; OAuth redirects never trust `Host` / `X-Forwarded-Host`) |
 | `HUB_JWT_SECRET` | HS256 secret for hub session JWTs (**required** in oidc; not the insecure default) |
 | `HUB_OIDC_TOPIC_CLAIM` | Claim used as hub topic (default `email`) |
 | `HUB_OIDC_SCOPES` | Default `openid email profile` |
@@ -57,7 +57,7 @@ HUB_OIDC_SCOPES=openid email profile
 | `HUB_OIDC_M2M_AUDIENCE` | Auth0 API identifier for SP `client_credentials` (required for SP connect) |
 | `HUB_SP_CLIENT_IDS` | Optional allowlist of M2M `client_id`s (comma-separated or JSON array) |
 
-Startup fails if `HUB_AUTH_MODE=oidc` and issuer/client id/secret/JWT secret are missing.
+Startup fails if `HUB_AUTH_MODE=oidc` and issuer/client id/secret/JWT secret/`HUB_PUBLIC_BASE_URL` are missing.
 
 Discovery: `GET {issuer}/.well-known/openid-configuration` (works for Auth0, Google, Entra).
 

@@ -11,8 +11,8 @@ pip install -r requirements.txt
 python hub.py --port 2018
 ```
 
-Default CLI bind is `0.0.0.0` (for Docker/cloud). The Slicer module Hub **Start** button
-passes `--host 127.0.0.1` so the embedded local hub listens on loopback only.
+Default CLI bind is `127.0.0.1` (loopback only). Pass `--host 0.0.0.0` to accept
+connections from other machines; the Docker images do this via `start-azure.sh`.
 
 Admin: http://127.0.0.1:2018/api/hub/admin
 

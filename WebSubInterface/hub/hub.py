@@ -260,7 +260,12 @@ def main():
 
     parser = argparse.ArgumentParser(description="Standalone Slicer WebSub Server")
     parser.add_argument("--port", type=int, default=2018, help="Server port (default: 2018)")
-    parser.add_argument("--host", type=str, default="0.0.0.0", help="Server host (default: 0.0.0.0)")
+    parser.add_argument(
+        "--host",
+        type=str,
+        default="127.0.0.1",
+        help="Server host (default: 127.0.0.1; use 0.0.0.0 in Docker/cloud)",
+    )
     args = parser.parse_args()
 
     try:

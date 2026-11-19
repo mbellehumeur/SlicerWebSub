@@ -42,7 +42,7 @@ python Testing/Python/image_display/test_safe_zip_extract.py
 python Testing/Python/python_client/test_event_names.py
 python Testing/Python/python_client/test_oidc_loopback_state.py
 python Testing/Python/hub/test_oauth_client_state.py
-python Testing/Python/hub/test_proxy_download_redirects.py
+python Testing/Python/hub/test_oidc_public_base_url.py
 ```
 
 Defaults: topic `USER-1`, endpoints from `SLICER-HUB` (`http://127.0.0.1:2018`).
