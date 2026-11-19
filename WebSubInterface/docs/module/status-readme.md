@@ -51,7 +51,7 @@ When no study is open:
 { "context.type": "", "context": [] }
 ```
 
-### Image display (VolView, OHIF, 3D Slicer ID)
+### Image display (VolView, OHIF)
 
 ```json
 {
@@ -72,6 +72,32 @@ When no study is open:
 `data.sceneview` when rendering layout diagrams from a status poll.
 
 `items[]` is extensible (`job`, `progress`, etc.) without changing worklist study loading.
+
+### Image display — 3D Slicer ID
+
+Slicer ID STATUS is identity + open context + sceneview only (no `studies`, no `items`):
+
+```json
+{
+  "source": "status",
+  "product": "3DSLICER-ID",
+  "context.type": "ImagingStudy",
+  "context": [ { "key": "study", "resource": { "resourceType": "ImagingStudy" } } ],
+  "sceneview": {
+    "source": "sceneview",
+    "product": "3DSLICER-ID",
+    "window": {},
+    "display": {},
+    "viewports": []
+  }
+}
+```
+
+When no study is open: `"context.type": ""`, `"context": []`.
+
+Local DICOM worklist rows are **not** on STATUS. Worklist uses
+`slicerworklist-request` / `slicerstudyinfo-request` (see
+[slicerworklist-readme.md](./slicerworklist-readme.md)).
 
 ### Image display — SlicerLive IRA
 
@@ -139,12 +165,11 @@ After WebSocket connect, image displays send `status-request` with `target.actor
 
 ## `local-dicom` → `dicom-request`
 
-3D Slicer Image Display advertises local DICOM database studies in STATUS
-`studies[]` with `openMode: "local-dicom"` (StudyInstanceUID only — no URLs).
-
-Worklist Open publishes `imagingstudy-open` with that mode. QT Slicer loads from
-its own DICOM DB. Web image displays (OHIF, SlicerLive IRA) cannot read that DB;
-they pull bytes with a typed hub request:
+3D Slicer Image Display advertises local DICOM database studies via
+`slicerworklist-response` (`openMode: "local-dicom"`, StudyInstanceUID only — no
+URLs). Worklist Open publishes `imagingstudy-open` with that mode. QT Slicer
+loads from its own DICOM DB. Web image displays (OHIF, SlicerLive IRA) cannot
+read that DB; they pull bytes with a typed hub request:
 
 | Step | Actor | Event |
 |------|--------|--------|

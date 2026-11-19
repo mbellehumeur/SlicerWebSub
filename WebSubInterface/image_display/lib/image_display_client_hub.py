@@ -44,6 +44,8 @@ DISPLAY_EVENTS = [
     IMAGINGSTUDY_OPEN,
     IMAGINGSTUDY_CLOSE,
     request_event_for("status"),
+    request_event_for("slicerworklist"),
+    request_event_for("slicerstudyinfo"),
     request_event_for("livescene"),
     request_event_for("dicom"),
     SCENE_UPDATE,
