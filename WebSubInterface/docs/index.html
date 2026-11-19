@@ -270,11 +270,13 @@
       <a href="https://github.com/ImagingDataCommons/imaging-data-commons-skill">IDC skill</a>.
     </p>
     <p>
-      <strong>idc-index</strong> — official
-      <a href="https://github.com/ImagingDataCommons/idc-index">Imaging Data Commons</a>
-      Python package for local DuckDB SQL against IDC metadata and DICOM series
-      download URLs; used by the IDC Claude service provider. If you use it in
-      research, cite Fedorov A, et al., <em>Radiographics</em>
+      <strong>IDC slim index</strong> — browser StudyUID→CRDC resolution via a
+      CORS radiology parquet (Jetstream), then direct S3; see SlicerLive
+      <code>build-idc-slim.ts</code> and <code>@slicer-hub/client</code>
+      <code>resolveIdcSeriesFromSlimIndex</code>. Official
+      <a href="https://github.com/ImagingDataCommons/idc-index">idc-index</a>
+      remains useful for local MCP/CLI; cite Fedorov A, et al.,
+      <em>Radiographics</em>
       (<a href="https://doi.org/10.1148/rg.230180">2023</a>).
     </p>
     <p>

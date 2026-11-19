@@ -12,7 +12,6 @@ from urllib.parse import urljoin, urlparse
 import aiohttp
 from fastapi import APIRouter, HTTPException, Request, Response
 from fastapi.responses import StreamingResponse
-from idc_index_service import resolve_study_series_files
 from idc_nl_anthropic import (
     anthropic_configured,
     env_idc_mcp_upstream_url,
@@ -203,71 +202,6 @@ def _env_idc_mcp_proxy_timeout_seconds() -> float:
         return float(raw)
     except (TypeError, ValueError):
         return 180.0
-
-
-@router.post("/api/hub/idc/series-files")
-@router.post("/api/hub/idc/series-files/")
-async def post_hub_idc_series_files(request: Request):
-    """Resolve IDC series metadata to per-instance HTTPS files via idc-index."""
-    _enforce_bearer_auth(request)
-    try:
-        payload = await request.json()
-    except Exception as exc:
-        raise HTTPException(
-            status_code=400, detail=f"Invalid JSON body: {exc}"
-        ) from exc
-    if not isinstance(payload, dict):
-        raise HTTPException(status_code=400, detail="JSON body must be an object")
-
-    study = payload.get("study")
-    organization = str(payload.get("organization") or "").strip()
-    source_bucket = str(payload.get("sourceBucket") or "aws").strip() or "aws"
-    if not isinstance(study, dict):
-        raise HTTPException(status_code=400, detail="Missing study object")
-
-    started = time.time()
-    try:
-        result = await asyncio.to_thread(
-            resolve_study_series_files,
-            study,
-            organization,
-            source_bucket,
-        )
-    except MemoryError as exc:
-        raise HTTPException(
-            status_code=503,
-            detail=(
-                "IDC index lookup exceeded available memory on this hub instance. "
-                "Use a larger App Service plan or resolve series files locally."
-            ),
-        ) from exc
-    except RuntimeError as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
-    except ValueError as exc:
-        message = str(exc)
-        status = 422 if "max" in message.lower() and "files" in message.lower() else 400
-        raise HTTPException(status_code=status, detail=message) from exc
-    except Exception as exc:
-        logger = logging.getLogger("hub")
-        logger.exception(
-            "idc series-files failed series=%s",
-            str(study.get("seriesInstanceUID") or "").strip(),
-        )
-        raise HTTPException(
-            status_code=500,
-            detail=f"IDC index lookup failed: {exc}",
-        ) from exc
-
-    resolved_study = result.get("study") if isinstance(result, dict) else {}
-    file_count = len(resolved_study.get("files") or []) if isinstance(resolved_study, dict) else 0
-    series_uid = str(study.get("seriesInstanceUID") or "").strip()
-    logging.getLogger("hub").info(
-        "idc series-files series=%s files=%d elapsed=%.0fms",
-        series_uid,
-        file_count,
-        (time.time() - started) * 1000,
-    )
-    return result
 
 
 @router.get("/api/hub/idc-nl/status")

@@ -121,7 +121,7 @@ def _hub_file_https_url(url: str) -> str:
             raise RuntimeError(f"Invalid GCS file URL: {text}")
         encoded_key = "/".join(quote(part, safe="") for part in key.split("/"))
         return f"https://storage.googleapis.com/{bucket}/{encoded_key}"
-    return text
+    raise RuntimeError(f"Unsupported download URL scheme: {scheme!r}")
 
 
 def _download_hub_file_entry(
@@ -152,6 +152,12 @@ def _download_hub_file_entry(
 
     if not url:
         return local_paths
+
+    parsed_download = urlparse(url)
+    if (parsed_download.scheme or "").lower() not in ("http", "https"):
+        raise RuntimeError(
+            f"Unsupported download URL scheme: {parsed_download.scheme!r}"
+        )
 
     download_name = file_name or _default_download_name(url, index)
     local_path = os.path.join(temp_dir, download_name)

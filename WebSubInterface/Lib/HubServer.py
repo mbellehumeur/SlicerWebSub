@@ -151,7 +151,7 @@ class HubServerWidget:
                 "local hub folder"
             )
         )
-        layout.addRow(_("SPAs:"), self.spaHelpButton)
+        layout.addRow(_("Example applications (SPAs):"), self.spaHelpButton)
 
         self.startButton.connect("clicked()", self._on_start)
         self.stopButton.connect("clicked()", self._on_stop)

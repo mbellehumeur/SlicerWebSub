@@ -139,15 +139,15 @@ class WebSubInterfaceWidget(ScriptedLoadableModuleWidget):
         ScriptedLoadableModuleWidget.setup(self)
         self.layout.setSpacing(10)
 
+        hubSection = self._ctk_collapsible_section(_("Hub"), expanded=True)
+        self.layout.addWidget(hubSection)
+        self.hubWidget.setup(hubSection)
+
         clientSection = self._ctk_collapsible_section(
             _("Image Display Client"), expanded=True
         )
         self.layout.addWidget(clientSection)
         self.imageDisplayClientWidget.setup(clientSection)
-
-        hubSection = self._ctk_collapsible_section(_("Hub"), expanded=True)
-        self.layout.addWidget(hubSection)
-        self.hubWidget.setup(hubSection)
 
         self.layout.addStretch(1)
 
