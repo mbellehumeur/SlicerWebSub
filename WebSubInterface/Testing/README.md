@@ -6,7 +6,9 @@ Shared live and offline smoke scripts for the Hub extension:
 - `python_client/` — `hub_client` subscribe / publish / request
 - `image_display/` — offline ImagingStudy context helpers (no Slicer)
 
-CMake still lives here for future `slicer_add_python_unittest` hooks.
+Offline scripts under `hub/`, `python_client/`, and `image_display/` that need no live hub
+are registered as CTest targets (`WebSubInterface_<script>`) when the extension is built
+with `BUILD_TESTING=ON`. Live smokes still need a hub on `:2018` and are run by hand.
 
 ## Prerequisites
 
@@ -47,6 +49,7 @@ python Testing/Python/python_client/test_oidc_loopback_state.py
 python Testing/Python/hub/test_oauth_client_state.py
 python Testing/Python/hub/test_oidc_public_base_url.py
 python Testing/Python/hub/test_service_mode_responses.py
+python Testing/Python/hub/test_binary_publish_body_cap.py
 ```
 
 Defaults: topic `USER-1`, endpoints from `SLICER-HUB` (`http://127.0.0.1:2018`).

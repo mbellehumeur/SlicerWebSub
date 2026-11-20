@@ -364,12 +364,45 @@ def _parse_multipart_related_parts(
     return parts
 
 
+def _http_exception_request_too_large(nbytes: int) -> HTTPException:
+    return HTTPException(
+        status_code=413,
+        detail=(
+            f"binary batch publish body exceeds "
+            f"HUB_HTTP_PAYLOAD_MAX_TOTAL_BYTES ({nbytes} > "
+            f"{HUB_HTTP_PAYLOAD_MAX_TOTAL_BYTES})"
+        ),
+    )
+
+
+def _assert_content_length_within_cap(content_length_header: Optional[str]) -> None:
+    """Reject when Content-Length alone already exceeds the payload store cap."""
+    raw = (content_length_header or "").strip()
+    if not raw:
+        return
+    try:
+        nbytes = int(raw)
+    except ValueError:
+        return
+    if nbytes > HUB_HTTP_PAYLOAD_MAX_TOTAL_BYTES:
+        raise _http_exception_request_too_large(nbytes)
+
+
+def _assert_body_within_cap(body: bytes) -> None:
+    """Reject a buffered body that exceeds the payload store cap (before parse)."""
+    nbytes = len(body)
+    if nbytes > HUB_HTTP_PAYLOAD_MAX_TOTAL_BYTES:
+        raise _http_exception_request_too_large(nbytes)
+
+
 async def _parse_binary_batch_publish(request: Request) -> tuple:
     """Parse binary-batch-shaped ``multipart/related`` batch (JSON + N file parts)."""
     content_type = request.headers.get("content-type", "")
+    _assert_content_length_within_cap(request.headers.get("content-length"))
     body = await request.body()
     if not body:
         raise HTTPException(status_code=400, detail="multipart/related body is empty")
+    _assert_body_within_cap(body)
 
     parts = _parse_multipart_related_parts(body, content_type)
     if not parts:

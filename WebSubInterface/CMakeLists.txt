@@ -28,8 +28,8 @@ slicerMacroBuildScriptedModule(
 
 #-----------------------------------------------------------------------------
 if(BUILD_TESTING)
-  # No ScriptedLoadableModuleTest on WebSubInterface.py; hub tests live under
-  # Testing/Python and are run outside Slicer CTest for now.
+  # Offline hub / image_display / python_client scripts registered as CTest
+  # (Testing/Python/CMakeLists.txt). Live hub smokes stay manual — see Testing/README.md.
   add_subdirectory(Testing)
 endif()
 
@@ -79,4 +79,8 @@ install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/image_display/lib"
         PATTERN "__pycache__" EXCLUDE
         PATTERN "*.pyc" EXCLUDE
         PATTERN "*.pyo" EXCLUDE
+        )
+
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/image_display/run_image_display.py"
+        DESTINATION "${_HUB_MOD_DIR}/image_display"
         )
