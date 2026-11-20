@@ -37,9 +37,11 @@ python Testing/Python/hub/smoke_hub_http.py
 python Testing/Python/hub/test_admin_access.py
 python Testing/Python/hub/test_admin_ws_ticket.py
 python Testing/Python/hub/test_conference_membership.py
+python Testing/Python/hub/test_publish_conference_filters.py
 python Testing/Python/python_client/smoke_client_pubsub.py
 python Testing/Python/image_display/test_imaging_study_context.py
 python Testing/Python/image_display/test_safe_zip_extract.py
+python Testing/Python/image_display/test_livesync_subscribers.py
 python Testing/Python/python_client/test_event_names.py
 python Testing/Python/python_client/test_oidc_loopback_state.py
 python Testing/Python/hub/test_oauth_client_state.py

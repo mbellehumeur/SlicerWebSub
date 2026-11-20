@@ -38,6 +38,23 @@ from subscriptions import (
 )
 
 
+def _publish_delivers_to(
+    sub: Dict,
+    topic: str,
+    event_type: str,
+    target_actor: str,
+    target_product: str,
+    target_subscriber: str,
+) -> bool:
+    """Event subscription + destination filters; shared by direct and conference fan-out."""
+    return (
+        _subscription_handles_event(sub, topic, event_type)
+        and _subscription_accepts_target_actor(sub, target_actor)
+        and _subscription_accepts_target_product(sub, target_product)
+        and _subscription_accepts_target_subscriber(sub, target_subscriber)
+    )
+
+
 async def _handle_publish_notification(
     notification: dict,
     predecoded_binary_by_index: Optional[Dict[int, bytes]] = None,
@@ -109,14 +126,13 @@ async def _handle_publish_notification(
     
     # Send to matching subscriptions
     for sub in hub.subscriptions[:]:  # Copy to allow removal
-        if not _subscription_handles_event(sub, topic_name, event_type):
-            continue
-        if not _subscription_accepts_target_actor(sub, publish_target_actor):
-            continue
-        if not _subscription_accepts_target_product(sub, publish_target_product):
-            continue
-        if not _subscription_accepts_target_subscriber(
-            sub, publish_target_subscriber
+        if not _publish_delivers_to(
+            sub,
+            topic_name,
+            event_type,
+            publish_target_actor,
+            publish_target_product,
+            publish_target_subscriber,
         ):
             continue
 
@@ -231,7 +247,14 @@ async def _handle_publish_notification(
             for participant_topic in all_participants:
                 # Find subscriptions for participant
                 for sub in hub.subscriptions:
-                    if sub.get("topic") == participant_topic and sub.get("channel") == "websocket":
+                    if sub.get("channel") == "websocket" and _publish_delivers_to(
+                        sub,
+                        participant_topic,
+                        event_type,
+                        publish_target_actor,
+                        publish_target_product,
+                        publish_target_subscriber,
+                    ):
                         sub_name = (sub.get("subscriber") or "").strip()
                         if (
                             publisher_subscriber

@@ -5,8 +5,12 @@ When slicer-mirror sends ``{ op: subscribe, ... }`` via scene-update, Image Disp
 2. Publishes **Snapshot** scene-update with the LiveScene document (first paint)
 3. Optionally attaches a Hub sink peer for live MRML events (when ModuleServer is up)
 
-``{ op: unsubscribe }`` (and idle timeout) detaches the Hub sink so publishing stops
-when slicer-mirror leaves. applyOps / reconcile are forwarded when the sink is up.
+A ``metadataOnly`` subscribe (e.g. IRA following camera / slices / segmentation display)
+skips 1., gets a bulk-free Snapshot addressed to it alone, and joins the shared sink.
+
+Subscribers are tracked per ``subscriber.name``; the sink streams their combined request.
+``{ op: unsubscribe }`` (and idle timeout) drops that subscriber; the Hub sink detaches when
+none remain. applyOps / reconcile are forwarded when the sink is up.
 Image Display LiveSync path publishes **only** scene-update (no ImagingStudy-open).
 """
 
@@ -67,8 +71,25 @@ async def detach_livesync_hub_sink(
 async def maybe_idle_detach_livesync(
     connection: "ImageDisplayClientConnection",
 ) -> None:
-    """Detach LiveSync sink after idle with no inbound ops (safety net)."""
+    """Drop idle LiveSync subscribers; detach the sink when none remain (safety net)."""
     if not getattr(connection, "_livesync_armed", False):
+        return
+    bridge = getattr(connection, "_mrson_hub_bridge", None)
+    if bridge is not None and len(bridge.subscribers):
+        if not bridge.subscribers.has_idle(LIVESYNC_IDLE_DETACH_SECONDS):
+            return
+        try:
+            removed = await connection.run_on_main_thread(
+                lambda: bridge.prune_idle_on_main(LIVESYNC_IDLE_DETACH_SECONDS)
+            )
+        except Exception as exc:
+            LOGGER.warning("livesync idle prune failed: %s", exc)
+            removed = []
+        if removed:
+            LOGGER.info("livesync idle subscribers dropped: %s", removed)
+        if len(bridge.subscribers):
+            return
+        await detach_livesync_hub_sink(connection, reason="idle-all-subscribers")
         return
     last = float(getattr(connection, "_livesync_last_inbound", 0.0) or 0.0)
     if last <= 0.0:
@@ -99,8 +120,10 @@ def _wire_from_scene_update_context(context: Any) -> Optional[Any]:
     return None
 
 
-def _livesync_scene_update_message(*, topic: str, wire: Dict[str, Any]) -> Dict[str, Any]:
-    return {
+def _livesync_scene_update_message(
+    *, topic: str, wire: Dict[str, Any], target_subscriber: str = ""
+) -> Dict[str, Any]:
+    msg: Dict[str, Any] = {
         "event": {
             "hub.topic": topic,
             "hub.event": "scene-update",
@@ -112,6 +135,13 @@ def _livesync_scene_update_message(*, topic: str, wire: Dict[str, Any]) -> Dict[
             ],
         }
     }
+    if target_subscriber:
+        msg["target.subscriber.name"] = target_subscriber
+    return msg
+
+
+def _message_requester(message: Dict[str, Any]) -> str:
+    return str(message.get("subscriber.name") or message.get("subscriber") or "").strip()
 
 
 async def handle_scene_update(
@@ -128,19 +158,23 @@ async def handle_scene_update(
         return
 
     op = str(wire.get("op") or "").strip()
+    requester = _message_requester(message)
     if op:
         _mark_livesync_inbound(connection)
+        bridge = getattr(connection, "_mrson_hub_bridge", None)
+        if bridge is not None and requester:
+            bridge.subscribers.touch(requester)
 
     if op == "subscribe":
-        await _respond_to_subscribe(connection, client, wire)
+        await _respond_to_subscribe(connection, client, wire, requester)
         return
 
     if op == "unsubscribe":
-        await detach_livesync_hub_sink(connection, reason="unsubscribe")
+        await _unsubscribe(connection, requester)
         return
 
     if op == "ping":
-        # Keepalive from an open slicer-mirror; activity already marked above.
+        # Keepalive from an open LiveSync subscriber; activity already marked above.
         return
 
     if op in ("applyOps", "reconcile", "getNode"):
@@ -257,10 +291,70 @@ async def _publish_hub_blobs_and_snapshot(
     return hash_set, scene_doc
 
 
+async def _publish_metadata_snapshot(
+    connection: "ImageDisplayClientConnection",
+    client: Any,
+    topic: str,
+    types: List[str],
+    requester: str,
+) -> None:
+    """Metadata-only first paint for one follower (no export / HubBlobs)."""
+    from image_display_mrson_hub_sink import get_or_create_bridge
+
+    bridge = get_or_create_bridge(connection)
+    try:
+        scene_doc = await asyncio.wait_for(
+            connection.run_on_main_thread(lambda: bridge.metadata_snapshot_on_main(types)),
+            timeout=LIVESYNC_EXPORT_TIMEOUT_SECONDS,
+        )
+    except Exception as exc:
+        LOGGER.warning("livesync metadata Snapshot failed: %s", exc)
+        return
+    try:
+        await client.publish(
+            _livesync_scene_update_message(
+                topic=topic,
+                wire={"event": SNAPSHOT_EVENT, "scene": scene_doc},
+                target_subscriber=requester,
+            )
+        )
+        LOGGER.info(
+            "livesync subscribe: metadata Snapshot nodes=%d to=%s",
+            len(scene_doc.get("nodes") or {}),
+            requester or "*",
+        )
+    except Exception as exc:
+        LOGGER.warning("livesync metadata Snapshot publish failed: %s", exc)
+
+
+async def _unsubscribe(
+    connection: "ImageDisplayClientConnection", requester: str
+) -> None:
+    bridge = getattr(connection, "_mrson_hub_bridge", None)
+    if bridge is None:
+        _clear_livesync_armed(connection)
+        return
+    try:
+        none_left = await connection.run_on_main_thread(
+            lambda: bridge.unsubscribe_on_main(requester)
+        )
+    except Exception as exc:
+        LOGGER.warning("livesync unsubscribe %s failed: %s", requester or "?", exc)
+        none_left = True
+    LOGGER.info(
+        "livesync unsubscribe: %s (remaining=%s)",
+        requester or "?",
+        bridge.subscribers.names(),
+    )
+    if none_left:
+        await detach_livesync_hub_sink(connection, reason="unsubscribe")
+
+
 async def _respond_to_subscribe(
     connection: "ImageDisplayClientConnection",
     client: Any,
     wire: Dict[str, Any],
+    requester: str = "",
 ) -> None:
     topic = connection.get_topic() or ""
     if not topic:
@@ -279,25 +373,30 @@ async def _respond_to_subscribe(
 
     metadata_only = bool(wire.get("metadataOnly"))
 
-    published, _scene = await _publish_hub_blobs_and_snapshot(
-        connection, client, topic
-    )
-
     from image_display_mrson_hub_sink import get_or_create_bridge
 
     bridge = get_or_create_bridge(connection)
-    bridge.mark_hashes_published(set(published))
+    if metadata_only:
+        await _publish_metadata_snapshot(connection, client, topic, types, requester)
+    else:
+        published, _scene = await _publish_hub_blobs_and_snapshot(
+            connection, client, topic
+        )
+        bridge.mark_hashes_published(set(published))
 
-    def subscribe_peer() -> None:
-        bridge.subscribe_on_main(types, local_bulk, metadata_only)
+    def subscribe_peer() -> bool:
+        return bridge.subscribe_on_main(requester, types, local_bulk, metadata_only)
 
     try:
-        await connection.run_on_main_thread(subscribe_peer)
+        resubscribed = await connection.run_on_main_thread(subscribe_peer)
         _mark_livesync_inbound(connection)
         LOGGER.info(
-            "livesync subscribe: Hub sink peer subscribed types=%s localBulk=%s",
+            "livesync subscribe: %s types=%s localBulk=%s metadataOnly=%s peer=%s",
+            requester or "?",
             types or "*",
             local_bulk,
+            metadata_only,
+            "resubscribed" if resubscribed else "unchanged",
         )
     except Exception as exc:
         # First paint uses Snapshot; live updates need ModuleServer Hub sink.

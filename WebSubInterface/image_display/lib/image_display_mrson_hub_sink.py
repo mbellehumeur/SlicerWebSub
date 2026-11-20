@@ -13,6 +13,8 @@ import os
 import re
 from typing import Any, Dict, List, Optional, Set, TYPE_CHECKING
 
+from livesync_subscribers import CombinedSubscription, LiveSyncSubscribers
+
 if TYPE_CHECKING:
     from image_display_client_hub import ImageDisplayClientConnection
 
@@ -20,6 +22,17 @@ LOGGER = logging.getLogger("WebSubInterface.ImageDisplay")
 
 HUB_BLOBS_EVENT = "HubBlobs"
 _SHA256_RE = re.compile(r"sha256-[a-fA-F0-9]{64}")
+# Matches ModuleServer mrson_peer.BULK_KEYS (metadataOnly strip).
+_BULK_KEYS = ("zarr",)
+
+
+def _strip_bulk(node: Dict[str, Any]) -> Dict[str, Any]:
+    out = dict(node)
+    for key in _BULK_KEYS:
+        if key in out:
+            out["bulk"] = {"available": True}
+            del out[key]
+    return out
 
 
 def _module_server_live() -> Any:
@@ -219,6 +232,8 @@ class MrsonHubBridge:
         self._published_hashes: Set[str] = set()
         self._outbound_lock = asyncio.Lock()
         self._attach_queue: Optional[asyncio.Queue] = None
+        self.subscribers = LiveSyncSubscribers()
+        self._applied: Optional[CombinedSubscription] = None
 
     @property
     def peer(self) -> Any:
@@ -251,13 +266,78 @@ class MrsonHubBridge:
                 LOGGER.warning("detach_cast_sink failed: %s", exc)
         self._peer = None
         self._published_hashes.clear()
+        self._applied = None
 
     def subscribe_on_main(
-        self, types: List[str], local_bulk: List[str], metadata_only: bool = False
-    ) -> None:
-        """Subscribe the Hub sink peer (must run on Slicer main thread)."""
+        self,
+        requester: str,
+        types: List[str],
+        local_bulk: List[str],
+        metadata_only: bool = False,
+    ) -> bool:
+        """Record ``requester`` and (re)subscribe the sink peer with the combined set (main thread).
+
+        A full subscriber always re-subscribes (it expects the NodeAdded replay). A metadata-only
+        one only does when the combination changed, so joining does not replay the scene to a mirror.
+        Returns True when the peer was (re)subscribed.
+        """
+        self.subscribers.upsert(requester, types, local_bulk, metadata_only)
+        return self._apply_combined_on_main(force=not metadata_only)
+
+    def unsubscribe_on_main(self, requester: str) -> bool:
+        """Drop ``requester``; returns True when no subscribers remain (caller detaches)."""
+        self.subscribers.remove(requester)
+        if not len(self.subscribers):
+            self._applied = None
+            return True
+        self._apply_combined_on_main()
+        return False
+
+    def prune_idle_on_main(self, max_age: float) -> List[str]:
+        """Drop subscribers idle for ``max_age`` seconds; re-subscribe if any remain."""
+        removed = self.subscribers.prune_idle(max_age)
+        if removed and len(self.subscribers):
+            self._apply_combined_on_main()
+        elif removed:
+            self._applied = None
+        return removed
+
+    def _apply_combined_on_main(self, force: bool = False) -> bool:
+        combined = self.subscribers.combined()
+        if combined is None:
+            return False
+        if not force and self._peer is not None and combined == self._applied:
+            return False
         peer = self.ensure_attached()
-        peer.subscribe(types, local_bulk, metadata_only)
+        peer.subscribe(
+            sorted(combined.types), sorted(combined.local_bulk), combined.metadata_only
+        )
+        self._applied = combined
+        LOGGER.info(
+            "livesync Hub sink subscription types=%s metadataOnly=%s subscribers=%s",
+            sorted(combined.types) or "*",
+            combined.metadata_only,
+            self.subscribers.names(),
+        )
+        return True
+
+    def metadata_snapshot_on_main(self, types: List[str]) -> Dict[str, Any]:
+        """Serialized LiveScene doc limited to ``types`` with bulk refs stripped (main thread)."""
+        self.ensure_attached()
+        from LiveStoryLib import mrson_server as HS  # type: ignore
+
+        scene_path = HS._ensure_serialized(force=True)
+        with open(scene_path, encoding="utf-8") as fh:
+            doc = json.load(fh)
+        wanted = set(types)
+        nodes: Dict[str, Any] = {}
+        for nid, node in (doc.get("nodes") or {}).items():
+            if not isinstance(node, dict):
+                continue
+            if wanted and node.get("type") not in wanted:
+                continue
+            nodes[nid] = _strip_bulk(node)
+        return {"nodes": nodes}
 
     def deliver_op_on_main(self, wire: Dict[str, Any]) -> None:
         """Forward applyOps / reconcile / getNode to the Hub sink peer."""
