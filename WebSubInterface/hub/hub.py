@@ -104,6 +104,7 @@ from env import (
     HUB_DANGEROUSLY_ALLOW_UNINVITED_CONFERENCE_JOIN,
     HUB_HTTP_PAYLOAD_MAX_TOTAL_BYTES,
     HUB_HTTP_PAYLOAD_TTL_SECONDS,
+    HUB_SERVICE_MODE,
     HUB_UVICORN_WS_PING_INTERVAL,
     HUB_UVICORN_WS_PING_TIMEOUT,
     HUB_WS_KEEPALIVE,
@@ -147,6 +148,12 @@ async def lifespan(app: FastAPI):
         raise
     _install_uvicorn_access_log_filter()
     hub_logger.info("Slicer hub auth mode: %s", HUB_AUTH_MODE)
+    hub_logger.info(
+        "Slicer hub service mode: %s",
+        "on (response payloads logged)"
+        if HUB_SERVICE_MODE
+        else "off (response payloads omitted from logs and audit)",
+    )
     hub_logger.info(
         "Slicer hub CORS: origins=%s credentials=%s",
         _cors_origins,

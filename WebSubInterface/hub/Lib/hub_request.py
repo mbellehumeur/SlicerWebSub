@@ -28,6 +28,7 @@ from conference_logic import (
     _conference_participant_topics,
     _normalize_conference_topics,
 )
+from env import HUB_SERVICE_MODE
 from state import hub
 from subscriptions import (
     _actor_to_text,
@@ -58,6 +59,19 @@ def _request_allowed_topics(topic_param: str) -> Set[str]:
             continue
         return {t for t in _conference_participant_topics(conference) if t}
     return {topic}
+
+
+def _audit_responses(responses: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Responses as stored in the audit log; payloads only in service mode."""
+    if HUB_SERVICE_MODE:
+        return responses
+    redacted: List[Dict[str, Any]] = []
+    for response in responses:
+        if isinstance(response, dict):
+            redacted.append({**response, "data": None, "dataOmitted": True})
+        else:
+            redacted.append({"data": None, "dataOmitted": True})
+    return redacted
 
 
 def _subscription_matches_allowed_topics(
@@ -387,20 +401,21 @@ async def _handle_hub_request(request_data: dict):
                     else:
                         audit_status = "no-response"
 
-                    response_preview = ""
-                    try:
-                        response_preview = json.dumps(responses_collected)[:600]
-                    except Exception:
-                        response_preview = str(responses_collected)[:600]
-                    hub.log(
+                    collated_message = (
                         "Hub request collated: "
                         f"requester='{subscriber}', "
                         f"id='{request_id}', "
                         f"count={len(responses_collected)}, "
                         f"timedOut={timed_out}, "
-                        f"missing={missing_subscribers}, "
-                        f"responses={response_preview[:200]}"
+                        f"missing={missing_subscribers}"
                     )
+                    if HUB_SERVICE_MODE:
+                        try:
+                            response_preview = json.dumps(responses_collected)
+                        except Exception:
+                            response_preview = str(responses_collected)
+                        collated_message += f", responses={response_preview[:200]}"
+                    hub.log(collated_message)
             except Exception as e:
                 audit_status = "send-error"
                 audit_error = f"{type(e).__name__}: {e}"
@@ -439,7 +454,7 @@ async def _handle_hub_request(request_data: dict):
             "missingSubscribers": missing_subscribers,
             "timedOut": timed_out,
             "error": audit_error,
-            "responses": responses_collected,
+            "responses": _audit_responses(responses_collected),
         },
         direction="received",
         publisher=_publisher_for_hub_request(subscriber, requested_product_name),

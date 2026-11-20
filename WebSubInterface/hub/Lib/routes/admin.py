@@ -12,6 +12,7 @@ from typing import Optional
 from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
 from hub_metrics import collect_hub_metrics
 
+from admin_ws_tickets import ADMIN_WS_TICKET_TTL_SECONDS, issue_ticket
 from http_util import (
     _enforce_privileged_admin,
     _enforce_privileged_admin_ws,
@@ -73,6 +74,13 @@ async def get_admin_metrics(request: Request):
     """Lightweight process metrics for admin sparkline charts."""
     _enforce_privileged_admin(request)
     return collect_hub_metrics(hub, _http_payload_store)
+
+
+@router.post("/api/hub/admin/ws-ticket")
+async def post_admin_ws_ticket(request: Request):
+    """Single-use ticket for /ws/admin?ticket=… (keeps the admin token out of URLs)."""
+    _enforce_privileged_admin(request)
+    return {"ticket": issue_ticket(), "expiresIn": int(ADMIN_WS_TICKET_TTL_SECONDS)}
 
 
 @router.get("/api/hub/admin/snapshot")

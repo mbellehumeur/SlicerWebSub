@@ -383,13 +383,11 @@ def validate_admin_access(
     *,
     authorization_header: Optional[str] = None,
     admin_token_header: Optional[str] = None,
-    query_admin_token: Optional[str] = None,
-    query_access_token: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Authorize privileged admin routes.
 
-    Always requires a matching ``HUB_ADMIN_TOKEN`` (header/query/Bearer).
-    Ordinary client JWTs are never admin.
+    Always requires a matching ``HUB_ADMIN_TOKEN`` (``X-Hub-Admin-Token`` or
+    Bearer header; never the query string). Ordinary client JWTs are never admin.
     """
     if not HUB_ADMIN_TOKEN:
         raise TokenValidationError(
@@ -399,9 +397,7 @@ def validate_admin_access(
     candidates: list[str] = []
     for raw in (
         admin_token_header,
-        query_admin_token,
         extract_bearer_token(authorization_header),
-        query_access_token,
     ):
         token = (raw or "").strip()
         if token and token not in candidates:

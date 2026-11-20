@@ -44,6 +44,14 @@ def main() -> int:
     except ot.TokenValidationError:
         pass
 
+    # Admin token is never accepted from the query string.
+    try:
+        ot.validate_admin_access(query_admin_token="secret-admin")
+        print("FAIL: validate_admin_access must not accept query tokens")
+        return 1
+    except TypeError:
+        pass
+
     # Hub APIs always require Bearer (no anonymous identity).
     try:
         ot.validate_request_bearer(None)

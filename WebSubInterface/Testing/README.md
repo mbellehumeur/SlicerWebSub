@@ -35,6 +35,7 @@ Individual scripts:
 ```bash
 python Testing/Python/hub/smoke_hub_http.py
 python Testing/Python/hub/test_admin_access.py
+python Testing/Python/hub/test_admin_ws_ticket.py
 python Testing/Python/hub/test_conference_membership.py
 python Testing/Python/python_client/smoke_client_pubsub.py
 python Testing/Python/image_display/test_imaging_study_context.py
@@ -43,6 +44,7 @@ python Testing/Python/python_client/test_event_names.py
 python Testing/Python/python_client/test_oidc_loopback_state.py
 python Testing/Python/hub/test_oauth_client_state.py
 python Testing/Python/hub/test_oidc_public_base_url.py
+python Testing/Python/hub/test_service_mode_responses.py
 ```
 
 Defaults: topic `USER-1`, endpoints from `SLICER-HUB` (`http://127.0.0.1:2018`).

@@ -309,7 +309,8 @@ class HubServerWidget:
         url = f"http://127.0.0.1:{port}/api/hub/admin"
         token = (self._hub_admin_token or "").strip()
         if token:
-            url = f"{url}?admin_token={quote(token, safe='')}"
+            # Fragment, not query: browsers never send it to the server or its logs.
+            url = f"{url}#admin_token={quote(token, safe='')}"
         qt.QDesktopServices.openUrl(qt.QUrl(url))
 
     def _on_hub_output(self) -> None:

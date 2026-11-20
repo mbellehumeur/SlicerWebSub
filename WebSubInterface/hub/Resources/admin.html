@@ -1329,7 +1329,24 @@
             );
         }
 
+        /** Consume ``#admin_token=`` from Slicer's Open admin (fragment never reaches the server). */
+        function consumeAdminTokenHash() {
+            const hash = String(window.location.hash || '').replace(/^#/, '');
+            if (!hash) {
+                return false;
+            }
+            const params = new URLSearchParams(hash);
+            const token = (params.get('admin_token') || '').trim();
+            if (!token) {
+                return false;
+            }
+            setStoredAdminToken(token);
+            clearOidcHashFromUrl();
+            return true;
+        }
+
         async function ensureAdminAuth() {
+            consumeAdminTokenHash();
             consumeOidcHashTokens();
             let cfg = { mode: 'mock' };
             try {
@@ -2697,13 +2714,30 @@
         let adminWebSocket = null;
         let reconnectAttempts = 0;
 
-        function connectAdminWebSocket() {
+        /** Single-use ticket for /ws/admin; the admin token itself never goes in a URL. */
+        async function fetchAdminWsTicket() {
+            try {
+                const response = await adminFetch('/api/hub/admin/ws-ticket', {
+                    method: 'POST',
+                    headers: { Accept: 'application/json' },
+                });
+                if (!response.ok) {
+                    return '';
+                }
+                const body = await response.json();
+                return String((body && body.ticket) || '').trim();
+            } catch (e) {
+                console.error('Admin WebSocket ticket request failed:', e);
+                return '';
+            }
+        }
+
+        async function connectAdminWebSocket() {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             let wsUrl = `${protocol}//${window.location.host}/ws/admin`;
-            const token = getStoredAdminToken();
-            if (token) {
-                // access_token = hub session JWT (oidc); admin_token = HUB_ADMIN_TOKEN.
-                wsUrl += `?access_token=${encodeURIComponent(token)}&admin_token=${encodeURIComponent(token)}`;
+            const ticket = await fetchAdminWsTicket();
+            if (ticket) {
+                wsUrl += `?ticket=${encodeURIComponent(ticket)}`;
             }
 
             try {

@@ -40,7 +40,8 @@ _SETTINGS_GROUP = "WebSubInterface"
 _SETTINGS_KEY_HUB = "imageDisplayHub"
 _SETTINGS_KEY_TOPIC = "imageDisplayTopic"
 _SETTINGS_KEY_OIDC = "imageDisplayOidc"
-_PHI_CONNECT_SETTINGS_KEY = "WebSubInterface/DontShowImageDisplayPhiWarning"
+# Bump the suffix whenever the connect warning text changes so it is shown again.
+_PHI_CONNECT_SETTINGS_KEY = "WebSubInterface/DontShowImageDisplayPhiWarning2"
 
 _STATUS_EDIT_BASE_STYLE = (
     "QPlainTextEdit { border: none; background: transparent; padding: 0; }"
@@ -559,13 +560,16 @@ class ImageDisplayClientWidget:
 
         if not slicer.util.confirmYesNoDisplay(
             _(
-                "While connected, peers on this hub topic can request your local "
-                "Slicer DICOM database worklist and images. Other websites open in "
-                "this browser cannot use the local hub without your session token, "
-                "but only continue if this system does not hold patient PHI you "
-                "must not share."
-            ),
-            windowTitle=_("Share local DICOM?"),
+                "While connected, peers on this hub topic can request, without "
+                "further confirmation:\n"
+                "  - your local Slicer DICOM database worklist and images\n"
+                "  - the current Slicer scene (all loaded data)\n\n"
+                "This data is sent through the selected hub server ({hub}). "
+                "Other websites open in this browser cannot use the local hub "
+                "without your session token, but only continue if this system "
+                "does not hold patient PHI you must not share."
+            ).format(hub=self.hubComboBox.currentText),
+            windowTitle=_("Share local data?"),
             dontShowAgainSettingsKey=_PHI_CONNECT_SETTINGS_KEY,
         ):
             return

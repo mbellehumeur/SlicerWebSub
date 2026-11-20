@@ -8,6 +8,7 @@ from urllib.parse import parse_qs
 
 from fastapi import HTTPException, Request, WebSocket
 from fastapi.responses import RedirectResponse, Response
+from admin_ws_tickets import consume_ticket
 from oauth_tokens import (
     HUB_AUTH_MODE,
     TokenValidationError,
@@ -90,13 +91,11 @@ def _enforce_topic_match(identity: Dict[str, Any], topic: str) -> None:
 
 
 def _enforce_privileged_admin(request: Request) -> Dict[str, Any]:
-    """Require admin token and/or Bearer JWT for privileged admin routes."""
+    """Require the admin token (header only) for privileged admin routes."""
     try:
         return validate_admin_access(
             authorization_header=request.headers.get("authorization"),
             admin_token_header=request.headers.get("x-hub-admin-token"),
-            query_admin_token=request.query_params.get("admin_token"),
-            query_access_token=request.query_params.get("access_token"),
         )
     except TokenValidationError as exc:
         raise HTTPException(
@@ -108,14 +107,16 @@ def _enforce_privileged_admin(request: Request) -> Dict[str, Any]:
 async def _enforce_privileged_admin_ws(websocket: WebSocket) -> bool:
     """Validate admin WS credentials; close without accept on failure.
 
-    Returns True when the caller may ``accept()`` the socket.
+    Browsers pass a single-use ``?ticket=`` from ``POST /api/hub/admin/ws-ticket``;
+    other clients may send the admin token as a header. Tokens in the query
+    string are not accepted. Returns True when the caller may ``accept()``.
     """
+    if consume_ticket(websocket.query_params.get("ticket") or ""):
+        return True
     try:
         validate_admin_access(
             authorization_header=websocket.headers.get("authorization"),
             admin_token_header=websocket.headers.get("x-hub-admin-token"),
-            query_admin_token=websocket.query_params.get("admin_token"),
-            query_access_token=websocket.query_params.get("access_token"),
         )
         return True
     except TokenValidationError:

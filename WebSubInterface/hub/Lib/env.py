@@ -35,6 +35,10 @@ def cors_allow_config() -> Tuple[List[str], bool]:
     return origins, True
 
 
+# Service mode keeps hub-request response payloads in the hub log and admin
+# audit log. Off by default: only ids, subscribers and counts are kept there.
+HUB_SERVICE_MODE = _env_flag("HUB_SERVICE_MODE", default=False)
+
 HUB_WS_KEEPALIVE = _env_flag("HUB_WS_KEEPALIVE", default=False)
 HUB_WS_KEEPALIVE_INTERVAL_SECONDS = float(
     os.getenv("HUB_WS_KEEPALIVE_INTERVAL_SECONDS", "30")
