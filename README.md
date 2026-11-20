@@ -4,7 +4,7 @@
   <img src="WebSubInterface/docs/images/banner.jpg" alt="Slicer WebSub Banner" width="100%">
 </p>
 
-The Slicer WebSub extension is a [WebSub](https://www.w3.org/TR/websub/)  messaging infrastructure that connects users of medical image displays, worklists, reporting tools, conferencing tools, remote inference models and AI orchestrators.
+The Slicer [WebSub](https://www.w3.org/TR/websub/) extension is a  messaging infrastructure that connects users of medical image displays, worklists, reporting tools, conferencing tools, remote inference models and AI orchestrators.
 
 ## Overview
 
@@ -21,7 +21,7 @@ This repository supplies the **HUB** and the Slicer Qt **Image Display** client 
 - **IDENTITY_PROVIDER** actor: authentication / identity provider with integration to the hub [OIDC endpoints](WebSubInterface/hub/docs/oidc.md) or built-in hub anonymous/mock authentication
 
 
-Javascript applications can easily connect to the hub and publish/receive events with the JS client:
+Javascript applications can easily connect to the hub and publish/receive events with the JS client.  In the example below, a viewer defines the events that it wants to receive and then connects to create a permanent websocket connection that will allow it to receive events, publish events and query the other applications for information:
 
 ```javascript
 import HubClient from '@slicer-hub/client';

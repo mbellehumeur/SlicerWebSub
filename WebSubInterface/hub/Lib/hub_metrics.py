@@ -15,6 +15,11 @@ _HUB_STARTED_MONO = time.monotonic()
 _NET_IO_BASE: Optional[Tuple[int, int]] = None
 
 
+def hub_started_at_iso() -> str:
+    """UTC ISO boot time for this hub process (safe for public auth/config)."""
+    return _HUB_STARTED_AT.isoformat()
+
+
 def _hub_process() -> Any:
     global _process
     if _process is None:
@@ -98,7 +103,7 @@ def collect_hub_metrics(hub: Any, payload_store: Any) -> Dict[str, Any]:
 
     return {
         "ts": datetime.now(timezone.utc).isoformat(),
-        "started_at": _HUB_STARTED_AT.isoformat(),
+        "started_at": hub_started_at_iso(),
         "uptime_seconds": round(time.monotonic() - _HUB_STARTED_MONO, 1),
         "memory_rss_mb": memory_rss_mb,
         "memory_payload_mb": memory_payload_mb,

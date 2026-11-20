@@ -36,7 +36,7 @@ HUB_PUBLIC_BASE_URL=https://oidc.bellehumeur-engineering.com
 HUB_JWT_SECRET=<long random>
 HUB_ADMIN_TOKEN=<long random>
 HUB_OIDC_TOPIC_CLAIM=email
-HUB_OIDC_SCOPES=openid email profile
+HUB_OIDC_SCOPES=openid email
 # Optional: allow SPA origins for return_to (localhost is always allowed)
 # HUB_OIDC_RETURN_ORIGINS=https://app.example.com
 ```
@@ -51,7 +51,7 @@ HUB_OIDC_SCOPES=openid email profile
 | `HUB_PUBLIC_BASE_URL` | Public hub URL for redirects / auth config (**required** in oidc; OAuth redirects never trust `Host` / `X-Forwarded-Host`) |
 | `HUB_JWT_SECRET` | HS256 secret for hub session JWTs (**required** in oidc; not the insecure default) |
 | `HUB_OIDC_TOPIC_CLAIM` | Claim used as hub topic (default `email`) |
-| `HUB_OIDC_SCOPES` | Default `openid email profile` |
+| `HUB_OIDC_SCOPES` | Default `openid email` (topic uses email; `profile` not required) |
 | `HUB_OIDC_JWKS_URL` | Optional override; otherwise JWKS from OIDC discovery |
 | `HUB_OIDC_RETURN_ORIGINS` | Comma-separated SPA origins allowed for `return_to` |
 | `HUB_OIDC_M2M_AUDIENCE` | Auth0 API identifier for SP `client_credentials` (required for SP connect) |
@@ -93,7 +93,7 @@ Flow: SP → hub `POST /oauth/token` (`grant_type=client_credentials`) → hub e
 
 ## Public discovery
 
-`GET /api/hub/auth/config` returns:
+`GET /api/hub/auth/config` returns (also `started_at`, hub process boot time ISO, for SPA username binding):
 
 - mock: `{ "mode": "mock", "login_url", "token_url", "require_auth" }`
 - oidc: `{ "mode": "oidc", "login_url", "token_url", "issuer", "require_auth": true }`

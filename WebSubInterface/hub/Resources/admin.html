@@ -2583,7 +2583,7 @@
             let aboutName = 'Slicer WebSub';
             let aboutDescription =
                 '3D Slicer extension for desktop integration workflows for healthcare providers and researchers.';
-            let aboutHomepage = 'https://github.com/mbellehumeur/SlicerHub/';
+            let aboutHomepage = 'https://github.com/mbellehumeur/SlicerWebSub/';
             try {
                 const response = await fetch('/api/hub/admin/about');
                 if (response.ok) {
@@ -2605,7 +2605,7 @@
                 <div class="about-header-text">
                     <h3 id="aboutHubTitle">About ${escapeHtml(aboutName)}</h3>
                 </div>
-                <p class="about-body">${escapeHtml(aboutDescription)} This admin page is embedded in the hub. See the <a href="${escapeHtml(aboutHomepage)}" target="_blank" rel="noopener noreferrer">3D Slicer Slicer WebSub extension</a> documentation.</p>
+                <p class="about-body">${escapeHtml(aboutDescription)} This admin page is embedded in the hub. See the <a href="${escapeHtml(aboutHomepage)}" target="_blank" rel="noopener noreferrer">Slicer WebSub</a> documentation.</p>
                 ${ABOUT_LICENSE_ACK_HTML(aboutHomepage)}
                 ${ABOUT_TRADEMARK_HTML}
                 <div class="modal-actions modal-actions-about">

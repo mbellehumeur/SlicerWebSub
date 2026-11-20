@@ -67,7 +67,7 @@ HUB_OIDC_TOPIC_CLAIM = (
     os.environ.get("HUB_OIDC_TOPIC_CLAIM", "email").strip() or "email"
 )
 HUB_OIDC_SCOPES = (
-    os.environ.get("HUB_OIDC_SCOPES", "openid email profile").strip()
+    os.environ.get("HUB_OIDC_SCOPES", "openid email").strip()
     or "openid email profile"
 )
 # Auth0 API identifier for Machine-to-Machine (service provider) client_credentials.

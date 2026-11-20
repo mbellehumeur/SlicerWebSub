@@ -37,6 +37,7 @@ from oauth_tokens import (
 )
 from oidc_discovery import OidcDiscoveryError, fetch_openid_configuration
 
+from hub_metrics import hub_started_at_iso
 from http_util import _parse_request_body
 from public_url import _oauth_public_base_url, _request_public_base_url
 from state import hub
@@ -418,6 +419,7 @@ async def get_auth_config(request: Request):
         "require_auth": True,
         "login_url": f"{base}/oauth/login",
         "token_url": f"{base}/oauth/token",
+        "started_at": hub_started_at_iso(),
     }
     if HUB_AUTH_MODE == "oidc":
         payload["issuer"] = HUB_OIDC_ISSUER
