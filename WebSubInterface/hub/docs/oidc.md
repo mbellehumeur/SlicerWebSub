@@ -1,4 +1,4 @@
-# OIDC ientity provider
+# OIDC identity provider
 
 The hub supports two auth modes via `HUB_AUTH_MODE`:
 
@@ -7,10 +7,13 @@ The hub supports two auth modes via `HUB_AUTH_MODE`:
 | `mock` (default) | `GET /oauth/login` → JSON hub session tokens (no redirect) | **Required** (Bearer = mock session JWT) |
 | `oidc` | Browser: `GET /oauth/login` → IdP → `GET /oauth/callback` | **Required** (Bearer = hub-minted session JWT) |
 
-`POST /oauth/token` is for OIDC `client_credentials` (service providers) only.
+The mock authentication is the same as OIDC without the redirect and automatic assignment of user/JWT.
+
+`POST /oauth/token` is for OIDC `client_credentials` (WebSub workers with M2M credentials) only.
 
 
-## Deployed hubs
+
+## Public hubs
 
 | Mode | URL |
 |------|-----|
@@ -20,11 +23,11 @@ The hub supports two auth modes via `HUB_AUTH_MODE`:
 Slicer default preset `SLICER-HUB-CLOUD-OIDC` targets the OIDC host (OIDC checkbox on).
 `SLICER-HUB-CLOUD` targets the mock-login hub and is demo-only (anyone can mint any topic).
 
-Native desktop clients use `response_mode=query` with a loopback `return_to`. They send a one-time
+Native desktop clients (slicer Qt image display) use `response_mode=query` with a loopback `return_to`. They send a one-time
 `client_state` on `/oauth/login`; the hub stores it with the IdP login and echoes it on the
 return_to redirect so the loopback listener only accepts the matching callback.
 
-## Environment
+## Environment variables
 
 ```bash
 HUB_AUTH_MODE=oidc
