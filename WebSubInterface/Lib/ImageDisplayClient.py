@@ -40,8 +40,7 @@ _SETTINGS_GROUP = "WebSubInterface"
 _SETTINGS_KEY_HUB = "imageDisplayHub"
 _SETTINGS_KEY_TOPIC = "imageDisplayTopic"
 _SETTINGS_KEY_OIDC = "imageDisplayOidc"
-# Bump the suffix whenever the connect warning text changes so it is shown again.
-_PHI_CONNECT_SETTINGS_KEY = "WebSubInterface/DontShowImageDisplayPhiWarning2"
+_SETTINGS_KEY_SHARE_DICOM_DB = "imageDisplayShareDicomDb"
 
 _STATUS_EDIT_BASE_STYLE = (
     "QPlainTextEdit { border: none; background: transparent; padding: 0; }"
@@ -158,6 +157,7 @@ class ImageDisplayClientWidget:
         self.disconnectButton: Optional[qt.QPushButton] = None
         self.openWorklistButton: Optional[qt.QPushButton] = None
         self.conferenceButton: Optional[qt.QPushButton] = None
+        self.shareDicomDbCheckBox: Optional[qt.QCheckBox] = None
         self.statusEdit: Optional[qt.QPlainTextEdit] = None
         self._conference_dialog: Optional[ConferenceDialog] = None
 
@@ -189,11 +189,23 @@ class ImageDisplayClientWidget:
         self.conferenceButton.setSizePolicy(
             qt.QSizePolicy.Fixed, qt.QSizePolicy.Fixed
         )
+        self.shareDicomDbCheckBox = qt.QCheckBox(_("Share my DICOMDB"))
+        self.shareDicomDbCheckBox.setToolTip(
+            _(
+                "When checked, peers on this hub topic can request your local "
+                "Slicer DICOM database worklist/images and the current scene "
+                "(LiveSync). Disconnect and Connect again to change this setting."
+            )
+        )
+        self.shareDicomDbCheckBox.setChecked(
+            self._initial_share_dicom_db_checked()
+        )
         conference_row = qt.QWidget()
         conference_row_layout = qt.QHBoxLayout(conference_row)
         conference_row_layout.setContentsMargins(0, 0, 0, 0)
         conference_row_layout.addWidget(self.openWorklistButton, 0)
         conference_row_layout.addWidget(self.conferenceButton, 0)
+        conference_row_layout.addWidget(self.shareDicomDbCheckBox, 0)
         conference_row_layout.addStretch(1)
         layout.addRow(_("Conferencing:"), conference_row)
 
@@ -341,7 +353,28 @@ class ImageDisplayClientWidget:
                 _SETTINGS_KEY_OIDC,
                 "true" if self.oidcCheckBox.isChecked() else "false",
             )
+        if self.shareDicomDbCheckBox is not None:
+            settings.setValue(
+                _SETTINGS_KEY_SHARE_DICOM_DB,
+                "true" if self.shareDicomDbCheckBox.isChecked() else "false",
+            )
         settings.endGroup()
+
+    @classmethod
+    def _initial_share_dicom_db_checked(cls) -> bool:
+        if not cls._has_setting(_SETTINGS_KEY_SHARE_DICOM_DB):
+            return False
+        return cls._load_setting(_SETTINGS_KEY_SHARE_DICOM_DB, "").lower() in (
+            "true",
+            "1",
+            "yes",
+        )
+
+    def _share_dicom_db_selected(self) -> bool:
+        return bool(
+            self.shareDicomDbCheckBox is not None
+            and self.shareDicomDbCheckBox.isChecked()
+        )
 
     def _oidc_selected(self) -> bool:
         return bool(self.oidcCheckBox is not None and self.oidcCheckBox.isChecked())
@@ -485,6 +518,8 @@ class ImageDisplayClientWidget:
             self.openHubButton.setEnabled(True)
         if self.oidcCheckBox:
             self.oidcCheckBox.setEnabled(enabled)
+        if self.shareDicomDbCheckBox:
+            self.shareDicomDbCheckBox.setEnabled(enabled)
         if self.topicEdit:
             # OIDC mode: topic is always read-only (filled with IdP email when known).
             self.topicEdit.setEnabled(enabled and not self._oidc_selected())
@@ -558,7 +593,8 @@ class ImageDisplayClientWidget:
             slicer.util.errorDisplay(_("Enter a topic before connecting."))
             return
 
-        if not slicer.util.confirmYesNoDisplay(
+        share_dicom_db = self._share_dicom_db_selected()
+        if share_dicom_db and not slicer.util.confirmYesNoDisplay(
             _(
                 "While connected, peers on this hub topic can request, without "
                 "further confirmation:\n"
@@ -570,7 +606,6 @@ class ImageDisplayClientWidget:
                 "does not hold patient PHI you must not share."
             ).format(hub=self.hubComboBox.currentText),
             windowTitle=_("Share local data?"),
-            dontShowAgainSettingsKey=_PHI_CONNECT_SETTINGS_KEY,
         ):
             return
 
@@ -612,6 +647,7 @@ class ImageDisplayClientWidget:
             product_name,
             product_version,
             status_callback=self._on_hub_connection_state,
+            share_dicom_db=share_dicom_db,
         )
 
     def _ensure_main_queue_active(self) -> None:

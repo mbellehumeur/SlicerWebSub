@@ -50,6 +50,14 @@ def main(argv: list[str] | None = None) -> int:
         help="Hub preset name (SLICER-HUB, SLICER-HUB-CLOUD, SLICER-HUB-CLOUD-OIDC)",
     )
     parser.add_argument("--product-name", default=DISPLAY_PRODUCT_NAME)
+    parser.add_argument(
+        "--share-dicomdb",
+        action="store_true",
+        help=(
+            "Subscribe to local DICOM worklist/studyinfo, livescene, dicom-request, "
+            "and scene-update (Share my DICOMDB); default is off"
+        ),
+    )
     args = parser.parse_args(argv)
 
     hub_name = "SLICER-HUB" if args.local else args.hub
@@ -77,6 +85,7 @@ def main(argv: list[str] | None = None) -> int:
         args.product_name,
         DISPLAY_PRODUCT_VERSION,
         status_callback=on_status,
+        share_dicom_db=bool(args.share_dicomdb),
     )
     print(f"Image display connecting as {subscriber} on {hub_name} topic {args.topic}")
     try:

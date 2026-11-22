@@ -40,23 +40,35 @@ LOGGER.setLevel(logging.INFO)
 DISPLAY_PRODUCT_NAME = "3DSLICER-ID"
 DISPLAY_PRODUCT_VERSION = "1.0"
 DISPLAY_ACTORS = ["ID"]
-DISPLAY_EVENTS = [
-    IMAGINGSTUDY_OPEN,
-    IMAGINGSTUDY_CLOSE,
-    request_event_for("status"),
+# Events that share local DICOM DB / LiveScene / LiveSync (Share my DICOMDB).
+DISPLAY_EVENTS_SHARE = [
     request_event_for("slicerworklist"),
     request_event_for("slicerstudyinfo"),
     request_event_for("livescene"),
     request_event_for("dicom"),
     SCENE_UPDATE,
+]
+DISPLAY_EVENTS_BASE = [
+    IMAGINGSTUDY_OPEN,
+    IMAGINGSTUDY_CLOSE,
+    request_event_for("status"),
     ANNOTATION_UPDATE,
     ANNOTATION_DELETE,
     CONFERENCE_START,
     CONFERENCE_END,
 ]
+# Full subscribe list when Share my DICOMDB is on.
+DISPLAY_EVENTS = list(DISPLAY_EVENTS_BASE) + list(DISPLAY_EVENTS_SHARE)
 AUTO_RECONNECT = True
 
 _active_connection: Optional["ImageDisplayClientConnection"] = None
+
+
+def display_events_for_share(share_dicom_db: bool) -> List[str]:
+    """Hub subscribe events; omit DICOM-DB / LiveSync sharing when unchecked."""
+    if share_dicom_db:
+        return list(DISPLAY_EVENTS)
+    return list(DISPLAY_EVENTS_BASE)
 
 
 def disconnect_image_display_client() -> None:
@@ -72,6 +84,8 @@ def build_image_display_client(
     subscriber_name: str,
     product_name: str,
     product_version: str,
+    *,
+    share_dicom_db: bool = False,
 ) -> SlicerHubClient:
     if hub_name not in HUBS:
         raise KeyError(f"Unknown hub {hub_name!r}; choose from {list(HUBS)}")
@@ -90,7 +104,7 @@ def build_image_display_client(
         product_name=(product_name or "").strip() or DISPLAY_PRODUCT_NAME,
         product_version=(product_version or "").strip() or DISPLAY_PRODUCT_VERSION,
         actors=list(DISPLAY_ACTORS),
-        events=list(DISPLAY_EVENTS),
+        events=display_events_for_share(share_dicom_db),
         lease=int(hub_def["lease"]),
         user_name=USER_NAME,
         default_target_actor="ID",
@@ -152,6 +166,7 @@ class ImageDisplayClientConnection:
         self._pending_access_token = ""
         self._pending_id_token = ""
         self._pending_user_name = ""
+        self._share_dicom_db = False
 
     def isHubThreadRunning(self) -> bool:
         return self._hub_thread is not None and self._hub_thread.is_alive()
@@ -482,6 +497,7 @@ class ImageDisplayClientConnection:
         access_token: Optional[str] = None,
         id_token: Optional[str] = None,
         user_name: Optional[str] = None,
+        share_dicom_db: bool = False,
     ) -> None:
         global _active_connection
 
@@ -498,6 +514,7 @@ class ImageDisplayClientConnection:
         self._pending_access_token = str(access_token or "").strip()
         self._pending_id_token = str(id_token or "").strip()
         self._pending_user_name = str(user_name or "").strip()
+        self._share_dicom_db = bool(share_dicom_db)
         self._want_hub_unsubscribe = False
         self._hub_subscribed = False
         self._hub_live = False
@@ -780,6 +797,7 @@ class ImageDisplayClientConnection:
             self._subscriber_name,
             self._product_name,
             self._product_version,
+            share_dicom_db=self._share_dicom_db,
         )
         if self._status_callback:
             initial_sub = self._client.subscriber_name

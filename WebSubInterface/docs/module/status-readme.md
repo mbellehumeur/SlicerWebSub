@@ -178,8 +178,9 @@ read that DB; they pull bytes with a typed hub request:
 | 3 | 3D Slicer ID | Collated `dicom-response` `{ ok, fileCount, studyInstanceUID }` |
 | 4 | OHIF / IRA | Existing `dicom-send` ingest opens the study |
 
-Slicer ID must subscribe to `dicom-request` (same pattern as `livescene-request`).
-JS helper: `requestHubDicom` in `@slicer-hub/client`.
+Slicer ID must subscribe to `dicom-request` (same pattern as `livescene-request`)
+when **Share my DICOMDB** is enabled. JS helper: `requestHubDicom` in
+`@slicer-hub/client`.
 
 ## `status-update` (one-way job log)
 
