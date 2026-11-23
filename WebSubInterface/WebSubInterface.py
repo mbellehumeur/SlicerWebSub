@@ -41,9 +41,9 @@ class WebSubInterface(ScriptedLoadableModule):
             (anyone can mint any topic). Keep it for demos without real PHI; prefer OIDC
             for shared or sensitive use.<br><br>
             <b>Quick test — local hub</b><br>
-            1. Expand <b>Hub</b>. Click <b>How to install SPAs…</b>, download
-            <code>spa-clients.zip</code> from the GitHub release, and extract it into
-            the local hub folder (clients are not shipped in the extension).
+            1. Expand <b>Hub</b>. Click <b>Download SPA clients…</b> to fetch
+            <code>spa-clients.zip</code> from the GitHub release into the local hub
+            folder (clients are not shipped in the extension).
             Restart the hub after install if it was already running.<br>
             2. Set <b>Port</b> (default 2018), click <b>Start</b> (listens on
             <code>127.0.0.1</code> only), then

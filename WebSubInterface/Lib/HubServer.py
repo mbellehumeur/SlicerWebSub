@@ -7,8 +7,11 @@ import secrets
 import socket
 import subprocess
 import sys
+import tempfile
+import zipfile
 from typing import Optional
 from urllib.parse import quote
+from urllib.request import urlretrieve
 
 import qt
 
@@ -23,10 +26,14 @@ _STATUS_TEXT_STYLE_ERROR = "color: palette(negative);"
 
 from .python_deps import DepsDeclinedError as HubDepsDeclinedError
 from .python_deps import ensure_module_python_deps
-from .repo_paths import hub_dir, hub_script
+from .repo_paths import ensure_monorepo_import_paths, hub_dir, hub_script
 
 SPA_CLIENTS_RELEASE_URL = (
     "https://github.com/mbellehumeur/SlicerWebSub/releases/tag/spa-clients"
+)
+SPA_CLIENTS_ZIP_URL = (
+    "https://github.com/mbellehumeur/SlicerWebSub/releases/download/"
+    "spa-clients/spa-clients.zip"
 )
 
 
@@ -144,11 +151,11 @@ class HubServerWidget:
         self.statusLabel.setStyleSheet(_STATUS_TEXT_STYLE_IDLE)
         layout.addRow(_("Status:"), self.statusLabel)
 
-        self.spaHelpButton = qt.QPushButton(_("How to install SPAs…"))
+        self.spaHelpButton = qt.QPushButton(_("Download SPA clients…"))
         self.spaHelpButton.setToolTip(
             _(
-                "Show instructions for downloading browser clients into the "
-                "local hub folder"
+                "Download browser clients from the GitHub spa-clients release "
+                "and extract them into the local hub folder"
             )
         )
         layout.addRow(_("Example applications (SPAs):"), self.spaHelpButton)
@@ -156,27 +163,137 @@ class HubServerWidget:
         self.startButton.connect("clicked()", self._on_start)
         self.stopButton.connect("clicked()", self._on_stop)
         self.openAdminButton.connect("clicked()", self._on_open_admin)
-        self.spaHelpButton.connect("clicked()", self._on_spa_help)
+        self.spaHelpButton.connect("clicked()", self._on_download_spas)
 
     def _set_status(self, text: str, style: str = _STATUS_TEXT_STYLE_IDLE) -> None:
         if self.statusLabel:
             self.statusLabel.setText(text)
             self.statusLabel.setStyleSheet(style)
 
-    def _on_spa_help(self) -> None:
-        hub_path = str(hub_dir())
-        slicer.util.infoDisplay(
+    def _open_spa_release_page(self) -> None:
+        qt.QDesktopServices.openUrl(qt.QUrl(SPA_CLIENTS_RELEASE_URL))
+
+    def _on_download_spas(self) -> None:
+        hub_path = hub_dir()
+        hub_path_str = str(hub_path)
+        confirmed = slicer.util.confirmOkCancelDisplay(
             _(
-                "Example clients (worklist, OHIF, …) are not part of the "
-                "extension.\n\n"
-                "1. Download spa-clients.zip from:\n"
-                "{url}\n\n"
-                "2. Extract the zip into this hub folder:\n"
+                "Download spa-clients.zip (~40 MB) from GitHub and extract into:\n"
                 "{hub}\n\n"
-                "3. Restart the hub if it was already running so mounts reload."
-            ).format(url=SPA_CLIENTS_RELEASE_URL, hub=hub_path),
-            windowTitle=_("Install SPA clients"),
+                "Existing SPA folders there may be overwritten."
+            ).format(hub=hub_path_str),
+            windowTitle=_("Download SPA clients"),
         )
+        if not confirmed:
+            return
+
+        progress = qt.QProgressDialog(
+            _("Downloading spa-clients.zip…"),
+            _("Cancel"),
+            0,
+            0,
+            self._section,
+        )
+        progress.setWindowTitle(_("Download SPA clients"))
+        progress.setWindowModality(qt.Qt.ApplicationModal)
+        progress.setMinimumDuration(0)
+        progress.setValue(0)
+        progress.show()
+        qt.QApplication.processEvents()
+
+        cancelled = {"value": False}
+
+        def _on_canceled() -> None:
+            cancelled["value"] = True
+
+        progress.canceled.connect(_on_canceled)
+
+        tmp_path = ""
+        try:
+            fd, tmp_path = tempfile.mkstemp(suffix="-spa-clients.zip")
+            os.close(fd)
+
+            def _reporthook(
+                block_num: int, block_size: int, total_size: int
+            ) -> None:
+                if cancelled["value"]:
+                    raise InterruptedError("download cancelled")
+                if total_size > 0:
+                    if progress.maximum() != total_size:
+                        progress.setMaximum(total_size)
+                    done = min(total_size, block_num * block_size)
+                    progress.setValue(done)
+                else:
+                    progress.setMaximum(0)
+                qt.QApplication.processEvents()
+
+            urlretrieve(SPA_CLIENTS_ZIP_URL, tmp_path, reporthook=_reporthook)
+            if cancelled["value"]:
+                raise InterruptedError("download cancelled")
+
+            progress.setLabelText(_("Extracting into hub folder…"))
+            progress.setMaximum(0)
+            qt.QApplication.processEvents()
+            ensure_monorepo_import_paths()
+            from safe_zip import safe_extract_zip
+
+            with zipfile.ZipFile(tmp_path, "r") as zf:
+                safe_extract_zip(zf, hub_path_str)
+        except InterruptedError:
+            progress.close()
+            self._set_status(
+                _("SPA download cancelled"),
+                _STATUS_TEXT_STYLE_IDLE,
+            )
+            return
+        except Exception as exc:
+            progress.close()
+            self._set_status(
+                _("SPA download failed: {0}").format(exc),
+                _STATUS_TEXT_STYLE_ERROR,
+            )
+            open_page = slicer.util.confirmOkCancelDisplay(
+                _(
+                    "Download or extract failed:\n{err}\n\n"
+                    "Open the GitHub release page in your browser?"
+                ).format(err=exc),
+                windowTitle=_("Download SPA clients"),
+            )
+            if open_page:
+                self._open_spa_release_page()
+            return
+        finally:
+            progress.close()
+            if tmp_path and os.path.isfile(tmp_path):
+                try:
+                    os.remove(tmp_path)
+                except OSError:
+                    pass
+
+        if self._is_running():
+            slicer.util.infoDisplay(
+                _(
+                    "SPA clients installed into:\n{hub}\n\n"
+                    "Stop then Start the hub so mounts reload."
+                ).format(hub=hub_path_str),
+                windowTitle=_("Download SPA clients"),
+            )
+            self._set_status(
+                _("SPA clients installed — restart hub to reload mounts"),
+                _STATUS_TEXT_STYLE_RUNNING,
+            )
+        else:
+            slicer.util.infoDisplay(
+                _(
+                    "SPA clients installed into:\n{hub}\n\n"
+                    "Start the hub to serve them."
+                ).format(hub=hub_path_str),
+                windowTitle=_("Download SPA clients"),
+            )
+            self._set_status(
+                _("SPA clients installed"),
+                _STATUS_TEXT_STYLE_IDLE,
+            )
 
     def _hub_script_path(self) -> str:
         return str(hub_script())

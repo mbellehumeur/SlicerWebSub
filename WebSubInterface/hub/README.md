@@ -29,12 +29,11 @@ Slicer Extension Manager package. They are optional folders under `hub/`
 
 ### In 3D Slicer (Hub section)
 
-1. Expand **Hub** and click **How to install SPAs…** for the path and release link.
-2. Download [`spa-clients.zip`](https://github.com/mbellehumeur/SlicerWebSub/releases/tag/spa-clients)
-   from the floating GitHub Release.
-3. Extract the zip into the local `hub/` folder (zip root has folder names such as
-   `worklist-client/`, `OHIF-client/`, …).
-4. Restart the hub if it was already running so mounts reload.
+1. Expand **Hub** and click **Download SPA clients…**.
+2. Confirm to fetch [`spa-clients.zip`](https://github.com/mbellehumeur/SlicerWebSub/releases/download/spa-clients/spa-clients.zip)
+   (~40 MB) from the floating GitHub Release and extract into the local `hub/`
+   folder (`worklist-client/`, `OHIF-client/`, …).
+3. Restart the hub if it was already running so mounts reload.
 
 ### Maintainers (publish release assets)
 

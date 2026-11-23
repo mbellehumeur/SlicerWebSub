@@ -14,6 +14,7 @@ AGENTS.md
 # Slicer hub deploy artifacts
 WebSubInterface/hub/slicer-hub.zip
 WebSubInterface/hub/spa-release/
+/spa-release/
 deploy/
 WebSubInterface/hub/worklist-client/
 WebSubInterface/hub/reporting-client/
